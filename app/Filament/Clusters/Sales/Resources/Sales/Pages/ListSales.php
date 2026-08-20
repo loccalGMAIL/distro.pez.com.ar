@@ -34,6 +34,7 @@ class ListSales extends ListRecords
                 ->after(function (Sale $record) {
                     if ($record->status === 'confirmada') {
                         $record->deducirStock();
+                        $record->comprobanteNotification()->send();
                     }
                 }),
         ];

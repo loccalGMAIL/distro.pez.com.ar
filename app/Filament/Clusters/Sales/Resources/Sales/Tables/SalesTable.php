@@ -25,7 +25,8 @@ class SalesTable
             ->columns([
                 TextColumn::make('numero')
                     ->size(TextSize::ExtraSmall)
-                    ->searchable(),
+                    ->searchable()
+                    ->sortable(),
                 TextColumn::make('fecha')
                     ->size(TextSize::ExtraSmall)
                     ->date('d/m/Y')
@@ -115,7 +116,10 @@ class SalesTable
                     ->visible(fn (Sale $record): bool => $record->status === 'borrador')
                     ->requiresConfirmation()
                     ->modalDescription('Confirma la venta y descuenta el stock de cada línea.')
-                    ->action(fn (Sale $record) => $record->confirmar()),
+                    ->action(function (Sale $record) {
+                        $record->confirmar();
+                        $record->comprobanteNotification()->send();
+                    }),
                 Action::make('anular')
                     ->label('Anular')
                     ->iconButton()
@@ -125,6 +129,14 @@ class SalesTable
                     ->requiresConfirmation()
                     ->modalDescription('Anula la venta, devuelve el stock descontado y revierte cualquier cobro imputado. No se puede deshacer.')
                     ->action(fn (Sale $record) => $record->anular()),
+                Action::make('verComprobante')
+                    ->label('Comprobante')
+                    ->iconButton()
+                    ->icon(Heroicon::DocumentArrowDown)
+                    ->color('gray')
+                    ->visible(fn (Sale $record): bool => $record->status !== 'borrador')
+                    ->url(fn (Sale $record): string => route('sales.comprobante', $record))
+                    ->openUrlInNewTab(),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([

@@ -2,6 +2,10 @@
 
 namespace App\Models;
 
+use Barryvdh\DomPDF\Facade\Pdf;
+use Barryvdh\DomPDF\PDF as PdfDocument;
+use Filament\Actions\Action;
+use Filament\Notifications\Notification;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -28,7 +32,6 @@ class Sale extends Model
         'condicion_pago',
         'medio_pago',
         'status',
-        'comprobante_path',
         'enviado_at',
         'observaciones',
     ];
@@ -138,6 +141,57 @@ class Sale extends Model
         }
 
         $this->deducirStock();
+    }
+
+    /**
+     * Número de comprobante ("{punto_venta}-{numero}"), o null si la venta
+     * todavía es un borrador. No se persiste: se recalcula siempre a partir
+     * del correlativo de la venta (numero) y el punto de venta configurado,
+     * para que nunca pueda desincronizarse de esos datos.
+     */
+    public function comprobanteNumero(): ?string
+    {
+        if ($this->status === 'borrador') {
+            return null;
+        }
+
+        $puntoVenta = str_pad(
+            (string) ((int) (CompanySetting::query()->first()?->punto_venta ?: 1)),
+            4,
+            '0',
+            STR_PAD_LEFT,
+        );
+
+        return "{$puntoVenta}-{$this->numero}";
+    }
+
+    /**
+     * Genera el PDF del comprobante en el momento, sin guardarlo en disco.
+     */
+    public function comprobantePdf(): PdfDocument
+    {
+        return Pdf::loadView('pdf.sales.comprobante', [
+            'sale' => $this->loadMissing(['customer', 'lines.product']),
+            'company' => CompanySetting::query()->first(),
+            'comprobanteNumero' => $this->comprobanteNumero(),
+        ]);
+    }
+
+    /**
+     * Notificación con un botón para ver el comprobante en una pestaña
+     * nueva. El PDF se genera al vuelo cuando se visita el enlace.
+     */
+    public function comprobanteNotification(): Notification
+    {
+        return Notification::make()
+            ->title("Venta {$this->numero} confirmada")
+            ->success()
+            ->actions([
+                Action::make('verComprobante')
+                    ->label('Ver comprobante')
+                    ->button()
+                    ->url(route('sales.comprobante', $this), shouldOpenInNewTab: true),
+            ]);
     }
 
     /**
