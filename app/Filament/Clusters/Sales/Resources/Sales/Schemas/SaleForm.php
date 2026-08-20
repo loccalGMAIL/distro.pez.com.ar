@@ -1,0 +1,357 @@
+<?php
+
+namespace App\Filament\Clusters\Sales\Resources\Sales\Schemas;
+
+use App\Models\Customer;
+use App\Models\PriceList;
+use App\Models\Product;
+use App\Models\Sale;
+use App\Models\Warehouse;
+use Closure;
+use Filament\Actions\Action;
+use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\Hidden;
+use Filament\Forms\Components\Repeater;
+use Filament\Forms\Components\Repeater\TableColumn;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
+use Filament\Infolists\Components\TextEntry;
+use Filament\Schemas\Components\Component;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Utilities\Get;
+use Filament\Schemas\Components\Utilities\Set;
+use Filament\Schemas\Schema;
+use Filament\Support\Enums\Alignment;
+use Filament\Support\RawJs;
+use Livewire\Component as Livewire;
+
+class SaleForm
+{
+    public static function configure(Schema $schema): Schema
+    {
+        return $schema
+            ->columns(4)
+            ->components([
+                Section::make()
+                    ->columnSpan(3)
+                    ->columns(4)
+                    ->extraAttributes([
+                        // Cualquier campo de una sola línea (fecha, cliente, lista,
+                        // condición/medio de pago, el botón del producto, etc.) dispara
+                        // el submit implícito del navegador al presionar Enter dentro
+                        // del <form> del modal, y Livewire lo procesa vía `wire:submit`
+                        // en el propio <form> (por encima de este wrapper), así que
+                        // frenarlo recién en el evento "submit" llega tarde. Lo cortamos
+                        // acá, en el keydown, antes de que el navegador dispare el
+                        // submit implícito. Si en ese momento no hay ninguna línea
+                        // cargada todavía, ese mismo Enter agrega la primera (mismo
+                        // botón "Agregar producto" que usa "descuento" para las
+                        // siguientes líneas).
+                        'x-on:keydown.enter.prevent' => <<<'JS'
+                            if (! $el.querySelector('.fi-fo-table-repeater tbody > tr')) {
+                                $el.querySelector('.fi-fo-table-repeater-add button')?.click()
+                            }
+                            JS,
+                    ])
+                    ->schema(self::mainFields()),
+                Section::make('Resumen')
+                    ->columnSpan(1)
+                    ->dense()
+                    ->inlineLabel()
+                    ->schema(self::summaryFields())
+                    ->footer(fn (?Sale $record) => $record ? [] : [
+                        Action::make('crear')
+                            ->label('Crear')
+                            ->color('primary')
+                            ->submit('callMountedAction')
+                            ->extraAttributes(['class' => 'w-full']),
+                    ]),
+            ]);
+    }
+
+    /**
+     * @return array<int, Component>
+     */
+    private static function mainFields(): array
+    {
+        return [
+            // TextInput::make('numero')
+            //     ->disabled()
+            //     ->dehydrated(false)
+            //     ->placeholder('Automático'),
+            DatePicker::make('fecha')
+                ->required()
+                ->default(now()),
+            Select::make('customer_id')
+                ->label('Cliente')
+                ->relationship('customer', 'razon_social')
+                ->searchable()
+                ->preload()
+                ->required()
+                ->default(fn () => Customer::where('predeterminado', true)->value('id'))
+                ->live()
+                ->afterStateUpdated(function (Set $set, ?string $state) {
+                    if ($state) {
+                        $set('price_list_id', Customer::find($state)?->price_list_id);
+                    }
+                })
+                ->columnSpan(2),
+            Select::make('price_list_id')
+                ->label('Lista')
+                ->relationship('priceList', 'nombre')
+                ->searchable()
+                ->preload()
+                ->default(fn () => PriceList::where('predeterminada', true)->value('id')),
+
+            Repeater::make('lines')
+                ->label('Líneas')
+                ->relationship()
+                ->live()
+                ->default([])
+                ->afterStateUpdated(fn (Get $get, Set $set) => self::recalculateSummaryFromRoot($get, $set))
+                ->extraAttributes([
+                    'style' => 'font-size: 0.75rem;',
+                    'x-on:sale-line-product-picked.window' => <<<'JS'
+                        setTimeout(() => {
+                            $el.querySelectorAll('tbody > tr')[$event.detail.index]
+                                ?.querySelector('[data-repeater-field=cantidad]')
+                                ?.focus();
+                        }, 300)
+                        JS,
+                ])
+                ->table([
+                    TableColumn::make('Código')->width('130px'),
+                    TableColumn::make('Producto'),
+                    TableColumn::make('Cantidad')->width('70px'),
+                    TableColumn::make('Precio')->width('110px')->alignment(Alignment::End),
+                    TableColumn::make('Descuento')->width('110px')->alignment(Alignment::End),
+                    TableColumn::make('Subtotal')->width('110px')->alignment(Alignment::End),
+                ])
+                ->compact()
+                ->schema([
+                    TextEntry::make('barcode')
+                        ->hiddenLabel()
+                        ->state(fn (Get $get) => Product::find($get('product_id'))?->barcode ?? '—')
+                        ->wrap(false)
+                        ->extraAttributes(['style' => 'font-size: 0.75rem;']),
+                    Select::make('product_id')
+                        ->label('Producto')
+                        ->hiddenLabel()
+                        ->searchable()
+                        ->autofocus()
+                        ->getSearchResultsUsing(fn (string $search): array => Product::query()
+                            ->where('activo', true)
+                            ->where(fn ($query) => $query
+                                ->where('nombre', 'like', "%{$search}%")
+                                ->orWhere('barcode', 'like', "%{$search}%"))
+                            ->limit(50)
+                            ->pluck('nombre', 'id')
+                            ->all())
+                        ->getOptionLabelUsing(fn ($value): ?string => Product::find($value)?->nombre)
+                        ->placeholder('Nombre o código')
+                        ->required()
+                        ->live()
+                        ->afterStateUpdated(function (Set $set, Get $get, ?string $state, Livewire $livewire, int $parentRepeaterItemIndex) {
+                            $product = $state ? Product::find($state) : null;
+
+                            if (! $product) {
+                                return;
+                            }
+
+                            $set('precio_unit', $product->precioParaLista($get('../../price_list_id')));
+                            $set('costo_unit', $product->costo_ultimo);
+                            self::recalculateLine($get, $set);
+
+                            $livewire->dispatch('sale-line-product-picked', index: $parentRepeaterItemIndex);
+                        }),
+                    TextInput::make('cantidad')
+                        ->hiddenLabel()
+                        ->required()
+                        ->numeric()
+                        ->default(1)
+                        ->live()
+                        ->extraInputAttributes([
+                            'data-repeater-field' => 'cantidad',
+                            'style' => 'font-size: 0.75rem;',
+                            'x-on:keydown.enter.prevent.stop' => <<<'JS'
+                                $el.closest('tr').querySelector('[data-repeater-field=descuento]')?.focus()
+                                JS,
+                        ])
+                        ->afterStateUpdated(fn (Get $get, Set $set) => self::recalculateLine($get, $set)),
+                    Hidden::make('precio_unit')
+                        ->default(0),
+                    TextEntry::make('precio_unit_display')
+                        ->hiddenLabel()
+                        ->state(fn (Get $get) => (float) ($get('precio_unit') ?? 0))
+                        ->numeric(decimalPlaces: 2, decimalSeparator: ',', thousandsSeparator: '.')
+                        ->prefix('$')
+                        ->extraAttributes(['style' => 'display: block; text-align: right; font-size: 0.75rem;']),
+                    TextInput::make('descuento')
+                        ->hiddenLabel()
+                        ->required()
+                        ->prefix('$')
+                        ->default(0.0)
+                        ->live()
+                        ->mask(RawJs::make("\$money(\$input, ',')"))
+                        ->dehydrateStateUsing(fn ($state) => self::parseAmount($state))
+                        ->extraInputAttributes([
+                            'data-repeater-field' => 'descuento',
+                            'style' => 'text-align: right; font-size: 0.75rem;',
+                            'x-on:keydown.enter.prevent.stop' => <<<'JS'
+                                $el.closest('.fi-fo-table-repeater').querySelector('.fi-fo-table-repeater-add button')?.click()
+                                JS,
+                        ])
+                        ->afterStateUpdated(fn (Get $get, Set $set) => self::recalculateLine($get, $set)),
+                    Hidden::make('subtotal')
+                        ->default(0),
+                    TextEntry::make('subtotal_display')
+                        ->hiddenLabel()
+                        ->state(fn (Get $get) => (float) ($get('subtotal') ?? 0))
+                        ->numeric(decimalPlaces: 2, decimalSeparator: ',', thousandsSeparator: '.')
+                        ->prefix('$')
+                        ->extraAttributes(['style' => 'display: block; text-align: right; font-size: 0.75rem;']),
+                    Hidden::make('costo_unit')
+                        ->default(0),
+                ])
+                ->addActionLabel('Agregar producto')
+                ->required()
+                ->minItems(1)
+                ->columnSpanFull(),
+            Section::make()
+                ->collapsible()
+                ->collapsed()
+                ->compact()
+                ->columns(2)
+                ->columnSpanFull()
+                ->schema([
+                    Select::make('warehouse_id')
+                        ->label('Depósito')
+                        ->relationship('warehouse', 'nombre')
+                        ->searchable()
+                        ->preload()
+                        ->required()
+                        ->default(fn () => Warehouse::where('predeterminado', true)->value('id')),
+                    Select::make('user_id')
+                        ->label('Usuario')
+                        ->relationship('user', 'name')
+                        ->searchable()
+                        ->preload()
+                        ->default(fn () => auth()->id()),
+                    Textarea::make('observaciones')
+                        ->columnSpanFull(),
+                ]),
+            Select::make('condicion_pago')
+                ->options(['contado' => 'Contado', 'cuenta_corriente' => 'Cuenta corriente'])
+                ->default('contado')
+                ->required(),
+            Select::make('medio_pago')
+                ->options([
+                    'efectivo' => 'Efectivo',
+                    'transferencia' => 'Transferencia',
+                    'tarjeta' => 'Tarjeta',
+                    'cheque' => 'Cheque',
+                    'mercadopago' => 'Mercado Pago',
+                    'otro' => 'Otro',
+                ]),
+            Hidden::make('status')
+                ->default('confirmada'),
+        ];
+    }
+
+    /**
+     * @return array<int, Component>
+     */
+    private static function summaryFields(): array
+    {
+        return [
+            Hidden::make('subtotal')
+                ->default(0),
+            TextEntry::make('subtotal_display')
+                ->label('Subtotal')
+                ->state(fn (Get $get) => (float) ($get('subtotal') ?? 0))
+                ->numeric(decimalPlaces: 2, decimalSeparator: ',', thousandsSeparator: '.')
+                ->prefix('$')
+                ->extraAttributes(['style' => 'display: block; text-align: right;']),
+            TextInput::make('descuento')
+                ->label('Descuento')
+                // ->helperText('Único campo editable a mano del resumen.')
+                ->required()
+                ->prefix('$')
+                ->default(0.0)
+                ->live()
+                ->mask(RawJs::make("\$money(\$input, ',')"))
+                ->dehydrateStateUsing(fn ($state) => self::parseAmount($state))
+                ->extraInputAttributes(['style' => 'text-align: right;'])
+                ->afterStateUpdated(function (Get $get, Set $set) {
+                    $subtotal = (float) ($get('subtotal') ?? 0);
+                    $descuento = self::parseAmount($get('descuento'));
+
+                    $set('total', number_format($subtotal - $descuento, 2, '.', ''));
+                }),
+            Hidden::make('total')
+                ->default(0),
+            TextEntry::make('total_display')
+                ->label('Total')
+                ->state(fn (Get $get) => (float) ($get('total') ?? 0))
+                ->numeric(decimalPlaces: 2, decimalSeparator: ',', thousandsSeparator: '.')
+                ->prefix('$')
+                ->extraAttributes(['style' => 'display: block; text-align: right;']),
+        ];
+    }
+
+    /**
+     * Recalcula el subtotal de una línea (cantidad × precio − descuento).
+     * Se llama desde dentro de un item del repeater, así que $get/$set están
+     * a nivel de esa línea.
+     */
+    private static function recalculateLine(Get $get, Set $set): void
+    {
+        $cantidad = (float) ($get('cantidad') ?? 0);
+        $precioUnit = (float) ($get('precio_unit') ?? 0);
+        $descuento = self::parseAmount($get('descuento'));
+
+        $set('subtotal', number_format(($cantidad * $precioUnit) - $descuento, 2, '.', ''));
+
+        self::recalculateSummaryFromRoot(
+            fn (string $key) => $get("../../{$key}"),
+            fn (string $key, $value) => $set("../../{$key}", $value),
+        );
+    }
+
+    /**
+     * Suma el subtotal de todas las líneas y recalcula subtotal/total del
+     * resumen (el descuento del resumen es manual, no se toca acá). Recibe
+     * $get/$set ya resueltos a nivel raíz (o closures que lo simulan).
+     */
+    private static function recalculateSummaryFromRoot(Get|Closure $get, Set|Closure $set): void
+    {
+        $lines = $get('lines') ?? [];
+
+        $subtotal = collect($lines)->sum(fn (array $line): float => (float) ($line['subtotal'] ?? 0));
+
+        $set('subtotal', number_format($subtotal, 2, '.', ''));
+
+        $descuento = self::parseAmount($get('descuento'));
+
+        $set('total', number_format($subtotal - $descuento, 2, '.', ''));
+    }
+
+    /**
+     * Convierte un monto tipeado con el mask "$money($input, ',')" (punto de
+     * miles, coma decimal) a un float plano. Los valores que ya llegan
+     * numéricos (ej. el 0.0 por defecto, sin tocar) se devuelven tal cual.
+     */
+    private static function parseAmount(mixed $value): float
+    {
+        if (blank($value)) {
+            return 0.0;
+        }
+
+        if (is_numeric($value)) {
+            return (float) $value;
+        }
+
+        return (float) str_replace(['.', ','], ['', '.'], (string) $value);
+    }
+}

@@ -1,0 +1,51 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
+
+class Supplier extends Model
+{
+    use HasFactory, SoftDeletes;
+
+    protected $fillable = [
+        'codigo',
+        'razon_social',
+        'cuit',
+        'telefono',
+        'email',
+        'domicilio',
+        'condicion_pago',
+        'dias_pago',
+        'balance',
+        'observaciones',
+        'activo',
+    ];
+
+    protected function casts(): array
+    {
+        return [
+            'balance' => 'decimal:2',
+            'activo' => 'boolean',
+        ];
+    }
+
+    public function purchases(): HasMany
+    {
+        return $this->hasMany(Purchase::class);
+    }
+
+    public function expenses(): HasMany
+    {
+        return $this->hasMany(Expense::class);
+    }
+
+    public function payments(): MorphMany
+    {
+        return $this->morphMany(Payment::class, 'party');
+    }
+}
