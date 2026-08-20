@@ -38,7 +38,7 @@ class SaleForm
                     ->columns(4)
                     ->extraAttributes([
                         // Cualquier campo de una sola línea (fecha, cliente, lista,
-                        // condición/medio de pago, el botón del producto, etc.) dispara
+                        // el botón del producto, etc.) dispara
                         // el submit implícito del navegador al presionar Enter dentro
                         // del <form> del modal, y Livewire lo procesa vía `wire:submit`
                         // en el propio <form> (por encima de este wrapper), así que
@@ -224,6 +224,7 @@ class SaleForm
                 ->compact()
                 ->columns(2)
                 ->columnSpanFull()
+                ->extraAttributes(self::compactAccordionAttributes())
                 ->schema([
                     Select::make('warehouse_id')
                         ->label('Depósito')
@@ -240,19 +241,6 @@ class SaleForm
                         ->default(fn () => auth()->id()),
                     Textarea::make('observaciones')
                         ->columnSpanFull(),
-                ]),
-            Select::make('condicion_pago')
-                ->options(['contado' => 'Contado', 'cuenta_corriente' => 'Cuenta corriente'])
-                ->default('contado')
-                ->required(),
-            Select::make('medio_pago')
-                ->options([
-                    'efectivo' => 'Efectivo',
-                    'transferencia' => 'Transferencia',
-                    'tarjeta' => 'Tarjeta',
-                    'cheque' => 'Cheque',
-                    'mercadopago' => 'Mercado Pago',
-                    'otro' => 'Otro',
                 ]),
             Hidden::make('status')
                 ->default('confirmada'),
@@ -297,6 +285,49 @@ class SaleForm
                 ->numeric(decimalPlaces: 2, decimalSeparator: ',', thousandsSeparator: '.')
                 ->prefix('$')
                 ->extraAttributes(['style' => 'display: block; text-align: right;']),
+            Section::make()
+                ->collapsible()
+                ->collapsed()
+                ->compact()
+                ->inlineLabel(false)
+                ->extraAttributes(self::compactAccordionAttributes())
+                ->schema([
+                    Select::make('condicion_pago')
+                        ->label('Condición de pago')
+                        ->options(['contado' => 'Contado', 'cuenta_corriente' => 'Cuenta corriente'])
+                        ->default('contado')
+                        ->required()
+                        ->extraFieldWrapperAttributes(['class' => '[&_label]:text-xs'])
+                        ->extraInputAttributes(['style' => 'font-size: 0.75rem; line-height: 1.25rem; padding-top: 0.125rem; padding-bottom: 0.125rem;']),
+                    Select::make('medio_pago')
+                        ->label('Medio de pago')
+                        ->options([
+                            'efectivo' => 'Efectivo',
+                            'transferencia' => 'Transferencia',
+                            'tarjeta' => 'Tarjeta',
+                            'cheque' => 'Cheque',
+                            'mercadopago' => 'Mercado Pago',
+                            'otro' => 'Otro',
+                        ])
+                        ->default('efectivo')
+                        ->extraFieldWrapperAttributes(['class' => '[&_label]:text-xs'])
+                        ->extraInputAttributes(['style' => 'font-size: 0.75rem; line-height: 1.25rem; padding-top: 0.125rem; padding-bottom: 0.125rem;']),
+                ]),
+        ];
+    }
+
+    /**
+     * Header más chico para los Section sin título usados como acordeón
+     * (Depósito/Usuario/Observaciones y Forma de pago): botón de plegar y
+     * padding reducidos, para que el control ocupe lo mínimo cuando está
+     * colapsado.
+     *
+     * @return array<string, string>
+     */
+    private static function compactAccordionAttributes(): array
+    {
+        return [
+            'class' => '[&_.fi-section-header]:px-2! [&_.fi-section-header]:py-1! [&_.fi-section-collapse-btn]:size-5! [&_.fi-section-collapse-btn_.fi-icon]:size-3!',
         ];
     }
 
