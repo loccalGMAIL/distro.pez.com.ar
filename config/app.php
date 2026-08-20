@@ -17,6 +17,20 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Application Version
+    |--------------------------------------------------------------------------
+    |
+    | This value is the current version of the application, following
+    | Semantic Versioning (MAJOR.MINOR.PATCH). Bump it as part of the same
+    | commit/PR that introduces the change it corresponds to. See
+    | .ai/decisions/0001-versioning.md for the full policy.
+    |
+    */
+
+    'version' => env('APP_VERSION', '0.1.0'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Application Environment
     |--------------------------------------------------------------------------
     |
