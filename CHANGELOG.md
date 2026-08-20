@@ -8,8 +8,14 @@ y este proyecto sigue [Semantic Versioning](https://semver.org/lang/es/) (ver
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-08-20
+
 ### Added
 
+- Login con Google (Laravel Socialite) en el panel de Filament: botón
+  "Continuar con Google" adicional al login por contraseña existente. Sin
+  auto-registro: solo pueden loguearse usuarios ya existentes y `activo`;
+  el resto es rechazado con una notificación.
 - Escaneo de código de barras con la cámara del dispositivo en el buscador de
   producto de la línea de venta (`SaleForm`). Visible solo en mobile; usa la
   API nativa `BarcodeDetector` del navegador, sin agregar dependencias JS.
