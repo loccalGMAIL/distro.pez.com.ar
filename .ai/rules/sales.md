@@ -29,3 +29,10 @@ El Select de producto NO usa `->relationship('product', 'nombre')` (que solo bus
 Todos los campos visibles usan `->hiddenLabel()` (los headers de columna del `table()` ya cumplen ese rol).
 
 Precio, subtotal de línea y subtotal/total del resumen se recalculan en cadena (ver `SaleForm::recalculateLine()` / `recalculateSummaryFromRoot()`): producto → precio (de la lista) → subtotal de línea (cantidad×precio−descuento, disabled/computed) → subtotal del resumen (suma de líneas, disabled/computed) → total (subtotal−descuento, disabled/computed). El único campo de descuento editable a mano es el del Resumen (nivel venta); el descuento POR LÍNEA sigue siendo editable también (afecta el subtotal de esa línea).
+
+## Nested repeater suffixAction: open a modal via modalContent, don't fight the button's default click
+A Filament `Action` used as `->suffixAction()` on a field nested inside a `Repeater` item (like `product_id`'s `scanBarcode` action) always renders with Filament's own `wire:click="mountAction(...)"`. You cannot cleanly override that click client-side (Livewire's listener and any extra `x-on:click` you add both fire — there's no reliable way to stop just the default one), so don't try to intercept the click to run custom JS first.
+
+Instead, give the action `->modalContent(view(...))` and NO `->schema()`/form fields. A plain click then opens Filament's own modal (no double-fire, no collision) and the modal's Blade view can run whatever custom JS it needs (e.g. camera access for `SaleForm::scanBarcodeAction()`). To submit a result back without a visible form field, call `$wire.callMountedAction({ key: value })` from JS — it re-runs the action's `action()` closure with `$arguments['key']` populated and closes the modal, same as clicking a submit button would.
+
+Also: `$parentRepeaterItemIndex` and `Livewire $livewire` (the utilities used in a field's `afterStateUpdated`) are NOT injectable inside an `Action::make(...)->action(fn (...))` closure defined via `suffixAction()`, even though `Get $get`/`Set $set` ARE and resolve correctly scoped to that repeater item. Don't rely on `$parentRepeaterItemIndex` there.
