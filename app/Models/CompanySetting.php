@@ -19,14 +19,20 @@ class CompanySetting extends Model
         'telefono',
         'email',
         'punto_venta',
-        'proximo_numero_comprobante',
         'logo_path',
     ];
 
-    protected function casts(): array
+    /**
+     * @return array<string, string>
+     */
+    public static function condicionIvaOptions(): array
     {
         return [
-            'proximo_numero_comprobante' => 'integer',
+            'responsable_inscripto' => 'Responsable Inscripto',
+            'monotributo' => 'Monotributo',
+            'exento' => 'Exento',
+            'consumidor_final' => 'Consumidor Final',
+            'no_responsable' => 'No Responsable',
         ];
     }
 }

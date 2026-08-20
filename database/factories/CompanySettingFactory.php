@@ -31,7 +31,6 @@ class CompanySettingFactory extends Factory
             'telefono' => fake()->phoneNumber(),
             'email' => fake()->companyEmail(),
             'punto_venta' => fake()->numerify('####'),
-            'proximo_numero_comprobante' => 1,
         ];
     }
 }

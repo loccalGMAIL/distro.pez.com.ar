@@ -24,7 +24,6 @@ test('saving the form persists company settings', function () {
             'telefono' => '1234-5678',
             'email' => 'contacto@comerciodemo.test',
             'punto_venta' => '0001',
-            'proximo_numero_comprobante' => 42,
         ])
         ->call('save')
         ->assertHasNoFormErrors();
@@ -35,7 +34,6 @@ test('saving the form persists company settings', function () {
         'condicion_iva' => 'responsable_inscripto',
         'domicilio_fiscal' => 'Av. Siempre Viva 123',
         'punto_venta' => '0001',
-        'proximo_numero_comprobante' => 42,
     ]);
 });
 

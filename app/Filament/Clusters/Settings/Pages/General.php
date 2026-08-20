@@ -42,13 +42,7 @@ class General extends Page
                     TextInput::make('cuit')
                         ->required(),
                     Select::make('condicion_iva')
-                        ->options([
-                            'responsable_inscripto' => 'Responsable Inscripto',
-                            'monotributo' => 'Monotributo',
-                            'exento' => 'Exento',
-                            'consumidor_final' => 'Consumidor Final',
-                            'no_responsable' => 'No Responsable',
-                        ])
+                        ->options(CompanySetting::condicionIvaOptions())
                         ->required(),
                     TextInput::make('domicilio_fiscal')
                         ->label('Domicilio fiscal')
@@ -60,10 +54,6 @@ class General extends Page
                         ->email(),
                     TextInput::make('punto_venta')
                         ->label('Punto de venta'),
-                    TextInput::make('proximo_numero_comprobante')
-                        ->label('Próximo número de comprobante')
-                        ->numeric()
-                        ->default(1),
                     FileUpload::make('logo_path')
                         ->label('Logotipo')
                         ->image()

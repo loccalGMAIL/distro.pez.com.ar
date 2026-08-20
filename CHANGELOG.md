@@ -8,6 +8,27 @@ y este proyecto sigue [Semantic Versioning](https://semver.org/lang/es/) (ver
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-08-20
+
+### Added
+
+- Configuración del comercio (nuevo cluster "Configuración" → página
+  "General"): datos de facturación (razón social, CUIT, condición IVA,
+  domicilio fiscal, teléfono, email, punto de venta) y logotipo, en un
+  modelo `CompanySetting` de fila única.
+- Comprobante en PDF al confirmar una venta, armado con los datos del
+  comercio, del cliente y las líneas de la venta (incluye código de barras
+  del producto). Se genera al vuelo en cada visita (no se guarda en el
+  servidor) vía `barryvdh/laravel-dompdf`; la numeración
+  (`{punto_venta}-{numero}`) sale siempre del correlativo real de la venta,
+  sin contador aparte. Accesible desde una notificación "Ver comprobante"
+  al confirmar/finalizar, o desde el botón "Comprobante" de la tabla de
+  ventas.
+
+### Changed
+
+- La columna "numero" de la tabla de ventas ahora es ordenable.
+
 ## [0.3.0] - 2026-08-20
 
 ### Added
