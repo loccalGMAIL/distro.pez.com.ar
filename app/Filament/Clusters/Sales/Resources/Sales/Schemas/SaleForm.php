@@ -17,12 +17,15 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Infolists\Components\TextEntry;
+use Filament\Notifications\Notification;
 use Filament\Schemas\Components\Component;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
 use Filament\Support\Enums\Alignment;
+use Filament\Support\Enums\Width;
+use Filament\Support\Icons\Heroicon;
 use Filament\Support\RawJs;
 use Livewire\Component as Livewire;
 
@@ -54,15 +57,18 @@ class SaleForm
                             }
                             JS,
                     ])
-                    ->schema(self::mainFields()),
+                    ->schema(self::mainFields())
+                    ->belowContent(fn () => view('filament.sale-form.resumen-toggle')),
                 Section::make('Resumen')
                     ->columnSpan(1)
                     ->dense()
                     ->inlineLabel()
+                    ->extraAttributes(self::resumenSlideOverAttributes())
+                    ->afterHeader(fn () => view('filament.sale-form.resumen-close-button'))
                     ->schema(self::summaryFields())
                     ->footer(fn (?Sale $record) => $record ? [] : [
                         Action::make('crear')
-                            ->label('Crear')
+                            ->label('Finalizar')
                             ->color('primary')
                             ->submit('callMountedAction')
                             ->extraAttributes(['class' => 'w-full']),
@@ -164,7 +170,8 @@ class SaleForm
                             self::recalculateLine($get, $set);
 
                             $livewire->dispatch('sale-line-product-picked', index: $parentRepeaterItemIndex);
-                        }),
+                        })
+                        ->suffixAction(self::scanBarcodeAction()),
                     TextInput::make('cantidad')
                         ->hiddenLabel()
                         ->required()
@@ -329,6 +336,82 @@ class SaleForm
         return [
             'class' => '[&_.fi-section-header]:px-2! [&_.fi-section-header]:py-1! [&_.fi-section-collapse-btn]:size-5! [&_.fi-section-collapse-btn_.fi-icon]:size-3!',
         ];
+    }
+
+    /**
+     * Convierte la Section "Resumen" en un panel deslizable (slide-over) por
+     * debajo del breakpoint `lg` — el mismo en el que `columns(4)` pasa a
+     * mostrarla como sidebar (ver `HasColumns::columns()`: un entero se
+     * mapea a `'lg' => $columns`, con `1` para todo lo anterior). Es CSS
+     * puro sobre el mismo componente (nada de markup duplicado): clases sin
+     * prefijo lo sacan de flujo y lo esconden fuera de pantalla; las
+     * variantes `lg:` de esas mismas clases lo devuelven a su lugar en la
+     * grilla sin transición, así que en desktop el resultado es idéntico al
+     * de antes. El toggle es puro Alpine local (`open`), sincronizado por el
+     * evento de window `resumen-toggle` con el botón flotante y el botón de
+     * cerrar (ver resumen-toggle.blade.php / resumen-close-button.blade.php).
+     *
+     * @return array<string, string>
+     */
+    private static function resumenSlideOverAttributes(): array
+    {
+        return [
+            'x-data' => '{ open: false }',
+            'x-on:resumen-toggle.window' => 'open = ! open',
+            ':class' => "open ? 'translate-x-0' : 'translate-x-full'",
+            'class' => 'fixed inset-y-0 right-0 z-40 flex w-5/6 max-w-sm flex-col overflow-y-auto shadow-2xl transition-transform duration-300 ease-in-out '
+                .'lg:static lg:inset-auto lg:z-auto lg:flex lg:w-auto lg:max-w-none lg:translate-x-0 lg:overflow-visible lg:shadow-sm lg:transition-none',
+        ];
+    }
+
+    /**
+     * Botón de escaneo de código de barras con la cámara del dispositivo,
+     * visible solo en mobile (`sm:hidden`) porque es donde tiene sentido usar
+     * la cámara trasera. Abre un modal sin formulario propio: el contenido
+     * (resources/views/filament/sale-form/barcode-scanner.blade.php) corre
+     * la cámara vía `BarcodeDetector` nativo del navegador y, al detectar un
+     * código, llama a `$wire.callMountedAction({ barcode })` — que ejecuta
+     * este mismo `action()` con `$arguments['barcode']` poblado, sin volver a
+     * pasar por el click del botón (evita el doble disparo de mountAction).
+     */
+    private static function scanBarcodeAction(): Action
+    {
+        return Action::make('scanBarcode')
+            ->label('Escanear código de barras')
+            ->icon(Heroicon::OutlinedCamera)
+            ->color('gray')
+            ->extraAttributes(['class' => 'sm:hidden'])
+            ->modalHeading('Escanear código de barras')
+            ->modalWidth(Width::Small)
+            ->modalSubmitAction(false)
+            ->modalCancelActionLabel('Cerrar')
+            ->modalContent(fn () => view('filament.sale-form.barcode-scanner'))
+            ->action(function (array $arguments, Set $set, Get $get) {
+                $barcode = trim((string) ($arguments['barcode'] ?? ''));
+
+                if ($barcode === '') {
+                    return;
+                }
+
+                $product = Product::query()
+                    ->where('activo', true)
+                    ->where('barcode', $barcode)
+                    ->first();
+
+                if (! $product) {
+                    Notification::make()
+                        ->title("No se encontró ningún producto con el código {$barcode}")
+                        ->danger()
+                        ->send();
+
+                    return;
+                }
+
+                $set('product_id', $product->id);
+                $set('precio_unit', $product->precioParaLista($get('../../price_list_id')));
+                $set('costo_unit', $product->costo_ultimo);
+                self::recalculateLine($get, $set);
+            });
     }
 
     /**
