@@ -57,15 +57,18 @@ class SaleForm
                             }
                             JS,
                     ])
-                    ->schema(self::mainFields()),
+                    ->schema(self::mainFields())
+                    ->belowContent(fn () => view('filament.sale-form.resumen-toggle')),
                 Section::make('Resumen')
                     ->columnSpan(1)
                     ->dense()
                     ->inlineLabel()
+                    ->extraAttributes(self::resumenSlideOverAttributes())
+                    ->afterHeader(fn () => view('filament.sale-form.resumen-close-button'))
                     ->schema(self::summaryFields())
                     ->footer(fn (?Sale $record) => $record ? [] : [
                         Action::make('crear')
-                            ->label('Crear')
+                            ->label('Finalizar')
                             ->color('primary')
                             ->submit('callMountedAction')
                             ->extraAttributes(['class' => 'w-full']),
@@ -332,6 +335,32 @@ class SaleForm
     {
         return [
             'class' => '[&_.fi-section-header]:px-2! [&_.fi-section-header]:py-1! [&_.fi-section-collapse-btn]:size-5! [&_.fi-section-collapse-btn_.fi-icon]:size-3!',
+        ];
+    }
+
+    /**
+     * Convierte la Section "Resumen" en un panel deslizable (slide-over) por
+     * debajo del breakpoint `lg` — el mismo en el que `columns(4)` pasa a
+     * mostrarla como sidebar (ver `HasColumns::columns()`: un entero se
+     * mapea a `'lg' => $columns`, con `1` para todo lo anterior). Es CSS
+     * puro sobre el mismo componente (nada de markup duplicado): clases sin
+     * prefijo lo sacan de flujo y lo esconden fuera de pantalla; las
+     * variantes `lg:` de esas mismas clases lo devuelven a su lugar en la
+     * grilla sin transición, así que en desktop el resultado es idéntico al
+     * de antes. El toggle es puro Alpine local (`open`), sincronizado por el
+     * evento de window `resumen-toggle` con el botón flotante y el botón de
+     * cerrar (ver resumen-toggle.blade.php / resumen-close-button.blade.php).
+     *
+     * @return array<string, string>
+     */
+    private static function resumenSlideOverAttributes(): array
+    {
+        return [
+            'x-data' => '{ open: false }',
+            'x-on:resumen-toggle.window' => 'open = ! open',
+            ':class' => "open ? 'translate-x-0' : 'translate-x-full'",
+            'class' => 'fixed inset-y-0 right-0 z-40 flex w-5/6 max-w-sm flex-col overflow-y-auto shadow-2xl transition-transform duration-300 ease-in-out '
+                .'lg:static lg:inset-auto lg:z-auto lg:flex lg:w-auto lg:max-w-none lg:translate-x-0 lg:overflow-visible lg:shadow-sm lg:transition-none',
         ];
     }
 
