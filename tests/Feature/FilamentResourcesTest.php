@@ -19,9 +19,9 @@ $resources = [
     'purchases/stock-movements',
 ];
 
-// Ventas no tiene página /create propia (se crea por modal desde el listado),
-// así que se excluye del chequeo genérico de "create page loads".
-$createableResources = array_values(array_diff($resources, ['sales/sales']));
+// Ventas y Compras no tienen página /create propia (se crean por modal desde
+// el listado), así que se excluyen del chequeo genérico de "create page loads".
+$createableResources = array_values(array_diff($resources, ['sales/sales', 'purchases/purchases']));
 
 test('each filament resource index page loads for an admin', function (string $resource) {
     $admin = User::factory()->create(['role' => 'admin', 'activo' => true]);
@@ -39,13 +39,22 @@ test('each filament resource create page loads for an admin', function (string $
         ->assertSuccessful();
 })->with($createableResources);
 
-test('purchase edit page renders the lines relation manager', function () {
+test('purchase edit page renders for a draft purchase', function () {
     $admin = User::factory()->create(['role' => 'admin', 'activo' => true]);
-    $purchase = Purchase::factory()->has(PurchaseLine::factory()->count(2), 'lines')->create();
+    $purchase = Purchase::factory()->has(PurchaseLine::factory()->count(2), 'lines')->create(['status' => 'borrador']);
 
     $this->actingAs($admin)
         ->get("/dashboard/purchases/purchases/{$purchase->id}/edit")
         ->assertSuccessful();
+});
+
+test('purchase edit page redirects away for a confirmed purchase', function () {
+    $admin = User::factory()->create(['role' => 'admin', 'activo' => true]);
+    $purchase = Purchase::factory()->has(PurchaseLine::factory()->count(2), 'lines')->create(['status' => 'confirmada']);
+
+    $this->actingAs($admin)
+        ->get("/dashboard/purchases/purchases/{$purchase->id}/edit")
+        ->assertRedirect('/dashboard/purchases/purchases');
 });
 
 test('payment edit page renders the allocations relation manager', function () {

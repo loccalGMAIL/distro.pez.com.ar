@@ -3,10 +3,8 @@
 namespace App\Filament\Clusters\Purchases\Resources\Purchases;
 
 use App\Filament\Clusters\Purchases\PurchasesCluster;
-use App\Filament\Clusters\Purchases\Resources\Purchases\Pages\CreatePurchase;
 use App\Filament\Clusters\Purchases\Resources\Purchases\Pages\EditPurchase;
 use App\Filament\Clusters\Purchases\Resources\Purchases\Pages\ListPurchases;
-use App\Filament\Clusters\Purchases\Resources\Purchases\RelationManagers\LinesRelationManager;
 use App\Filament\Clusters\Purchases\Resources\Purchases\Schemas\PurchaseForm;
 use App\Filament\Clusters\Purchases\Resources\Purchases\Tables\PurchasesTable;
 use App\Models\Purchase;
@@ -45,7 +43,7 @@ class PurchaseResource extends Resource
     public static function getRelations(): array
     {
         return [
-            LinesRelationManager::class,
+            //
         ];
     }
 
@@ -53,7 +51,6 @@ class PurchaseResource extends Resource
     {
         return [
             'index' => ListPurchases::route('/'),
-            'create' => CreatePurchase::route('/create'),
             'edit' => EditPurchase::route('/{record}/edit'),
         ];
     }

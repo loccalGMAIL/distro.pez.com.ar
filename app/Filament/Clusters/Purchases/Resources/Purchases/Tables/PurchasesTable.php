@@ -2,11 +2,15 @@
 
 namespace App\Filament\Clusters\Purchases\Resources\Purchases\Tables;
 
+use App\Models\Purchase;
+use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Actions\ForceDeleteBulkAction;
 use Filament\Actions\RestoreBulkAction;
+use Filament\Actions\ViewAction;
+use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TrashedFilter;
@@ -18,54 +22,103 @@ class PurchasesTable
     {
         return $table
             ->columns([
+                TextColumn::make('fecha')
+                    ->date('d/m/Y')
+                    ->sortable(),
+                TextColumn::make('numero')
+                    ->label('Número')
+                    ->searchable()
+                    ->sortable()
+                    ->toggleable(),
                 TextColumn::make('supplier.razon_social')
                     ->label('Proveedor')
                     ->searchable()
-                    ->sortable(),
+                    ->sortable()
+                    ->toggleable(),
+                TextColumn::make('tipo_comprobante')
+                    ->label('Comprobante')
+                    ->badge()
+                    ->sortable()
+                    ->toggleable(),
                 TextColumn::make('warehouse.nombre')
                     ->label('Depósito')
-                    ->sortable(),
+                    ->sortable()
+                    ->toggleable(),
                 TextColumn::make('user.name')
                     ->label('Usuario')
-                    ->searchable(),
-                TextColumn::make('tipo_comprobante')
-                    ->badge(),
-                TextColumn::make('numero')
-                    ->searchable(),
-                TextColumn::make('fecha')
-                    ->date()
-                    ->sortable(),
+                    ->searchable()
+                    ->sortable()
+                    ->toggleable(),
                 TextColumn::make('vence_at')
-                    ->date()
-                    ->sortable(),
+                    ->label('Vence')
+                    ->date('d/m/Y')
+                    ->sortable()
+                    ->toggleable(),
                 TextColumn::make('total')
-                    ->money('ARS')
-                    ->sortable(),
+                    ->money('ARS', locale: 'es_AR')
+                    ->sortable()
+                    ->toggleable(),
                 TextColumn::make('saldo')
-                    ->money('ARS')
-                    ->sortable(),
+                    ->money('ARS', locale: 'es_AR')
+                    ->sortable()
+                    ->toggleable(),
                 TextColumn::make('status')
-                    ->badge(),
+                    ->label('Estado')
+                    ->badge()
+                    ->color(fn (string $state): string => match ($state) {
+                        'confirmada' => 'success',
+                        'anulada' => 'danger',
+                        default => 'gray',
+                    })
+                    ->sortable()
+                    ->toggleable(),
                 TextColumn::make('created_at')
-                    ->dateTime()
+                    ->dateTime('d/m/Y H:i')
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('updated_at')
-                    ->dateTime()
+                    ->dateTime('d/m/Y H:i')
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('deleted_at')
-                    ->dateTime()
+                    ->dateTime('d/m/Y H:i')
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
+            ->defaultSort('fecha', 'desc')
             ->filters([
                 SelectFilter::make('status')
                     ->options(['borrador' => 'Borrador', 'confirmada' => 'Confirmada', 'anulada' => 'Anulada']),
+                SelectFilter::make('supplier_id')
+                    ->label('Proveedor')
+                    ->relationship('supplier', 'razon_social')
+                    ->searchable()
+                    ->preload(),
                 TrashedFilter::make(),
             ])
             ->recordActions([
-                EditAction::make(),
+                ViewAction::make()
+                    ->iconButton(),
+                EditAction::make()
+                    ->visible(fn (Purchase $record): bool => $record->status === 'borrador'),
+                Action::make('confirmar')
+                    ->label('Confirmar')
+                    ->iconButton()
+                    ->icon(Heroicon::Check)
+                    ->color('success')
+                    ->visible(fn (Purchase $record): bool => $record->status === 'borrador')
+                    ->requiresConfirmation()
+                    ->modalDescription('Confirma la compra e ingresa el stock de cada línea, actualizando el costo vigente de los productos.')
+                    ->action(fn (Purchase $record) => $record->confirmar()),
+                Action::make('anular')
+                    ->label('Anular')
+                    ->iconButton()
+                    ->icon(Heroicon::XCircle)
+                    ->color('danger')
+                    ->visible(fn (Purchase $record): bool => $record->status !== 'anulada')
+                    ->requiresConfirmation()
+                    ->modalDescription('Anula la compra, revierte el stock ingresado y cualquier pago imputado. No se puede deshacer.')
+                    ->action(fn (Purchase $record) => $record->anular()),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([

@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\DB;
 
 class Purchase extends Model
 {
@@ -69,5 +70,91 @@ class Purchase extends Model
     public function paymentAllocations(): MorphMany
     {
         return $this->morphMany(PaymentAllocation::class, 'allocatable');
+    }
+
+    public function stockMovements(): MorphMany
+    {
+        return $this->morphMany(StockMovement::class, 'source');
+    }
+
+    /**
+     * Ingresa stock por cada línea (un stock_movement tipo "compra" por
+     * línea) y actualiza el costo vigente del producto con el costo_unit
+     * pagado. Idempotente: si ya se generaron movimientos para esta compra,
+     * no vuelve a ingresar stock.
+     */
+    public function aumentarStock(): void
+    {
+        if ($this->stockMovements()->where('type', 'compra')->exists()) {
+            return;
+        }
+
+        DB::transaction(function () {
+            foreach ($this->lines as $line) {
+                $this->stockMovements()->create([
+                    'product_id' => $line->product_id,
+                    'warehouse_id' => $this->warehouse_id,
+                    'quantity' => $line->cantidad,
+                    'unit_cost' => $line->costo_unit,
+                    'type' => 'compra',
+                    'user_id' => $this->user_id,
+                    'motivo' => "Compra {$this->numero}",
+                ]);
+
+                $line->product->update(['costo_ultimo' => $line->costo_unit]);
+            }
+        });
+    }
+
+    /**
+     * Confirma la compra (si no lo estaba ya) e ingresa stock.
+     */
+    public function confirmar(): void
+    {
+        if ($this->status !== 'confirmada') {
+            $this->status = 'confirmada';
+            $this->save();
+        }
+
+        $this->aumentarStock();
+    }
+
+    /**
+     * Anula la compra: revierte el stock ingresado (si lo había) generando
+     * movimientos inversos tipo "devolucion_prov" -sin borrar el historial,
+     * ni el costo_ultimo ya actualizado en los productos-, y revierte
+     * cualquier pago imputado a esta compra para que la cuenta del
+     * proveedor quede consistente. Idempotente.
+     */
+    public function anular(): void
+    {
+        if ($this->status === 'anulada') {
+            return;
+        }
+
+        DB::transaction(function () {
+            $this->stockMovements()
+                ->where('type', 'compra')
+                ->get()
+                ->each(function (StockMovement $movement) {
+                    $this->stockMovements()->create([
+                        'product_id' => $movement->product_id,
+                        'warehouse_id' => $movement->warehouse_id,
+                        'quantity' => -$movement->quantity,
+                        'unit_cost' => $movement->unit_cost,
+                        'type' => 'devolucion_prov',
+                        'user_id' => $this->user_id,
+                        'motivo' => "Anulación compra {$this->numero}",
+                    ]);
+                });
+
+            $this->paymentAllocations->each(function (PaymentAllocation $allocation) {
+                $allocation->payment->increment('sin_imputar', $allocation->monto);
+                $allocation->delete();
+            });
+
+            $this->status = 'anulada';
+            $this->save();
+        });
     }
 }

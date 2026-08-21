@@ -2,84 +2,355 @@
 
 namespace App\Filament\Clusters\Purchases\Resources\Purchases\Schemas;
 
+use App\Models\Product;
+use App\Models\Supplier;
+use App\Models\Warehouse;
+use Carbon\Carbon;
+use Closure;
+use Filament\Actions\Action;
 use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\FileUpload;
+use Filament\Forms\Components\Hidden;
+use Filament\Forms\Components\Repeater;
+use Filament\Forms\Components\Repeater\TableColumn;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
+use Filament\Infolists\Components\TextEntry;
+use Filament\Notifications\Notification;
+use Filament\Schemas\Components\Component;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Utilities\Get;
+use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
+use Filament\Support\Enums\Alignment;
+use Filament\Support\Icons\Heroicon;
+use Filament\Support\RawJs;
 
 class PurchaseForm
 {
     public static function configure(Schema $schema): Schema
     {
         return $schema
+            ->columns(3)
             ->components([
-                Select::make('supplier_id')
-                    ->label('Proveedor')
-                    ->relationship('supplier', 'razon_social')
-                    ->searchable()
-                    ->preload()
-                    ->required(),
-                Select::make('warehouse_id')
-                    ->label('Depósito')
-                    ->relationship('warehouse', 'nombre')
-                    ->searchable()
-                    ->preload()
-                    ->required(),
-                Select::make('user_id')
-                    ->label('Usuario')
-                    ->relationship('user', 'name')
-                    ->searchable()
-                    ->preload(),
-                Select::make('tipo_comprobante')
-                    ->options([
-                        'factura_a' => 'Factura A',
-                        'factura_b' => 'Factura B',
-                        'factura_c' => 'Factura C',
-                        'remito' => 'Remito',
-                        'otro' => 'Otro',
-                    ])
-                    ->default('factura_a')
-                    ->required(),
-                TextInput::make('numero'),
-                DatePicker::make('fecha')
-                    ->required(),
-                DatePicker::make('vence_at')
-                    ->label('Vence'),
-                TextInput::make('subtotal')
-                    ->required()
-                    ->numeric()
-                    ->prefix('$')
-                    ->default(0.0),
-                TextInput::make('descuento')
-                    ->required()
-                    ->numeric()
-                    ->prefix('$')
-                    ->default(0.0),
-                TextInput::make('iva')
-                    ->label('IVA')
-                    ->required()
-                    ->numeric()
-                    ->prefix('$')
-                    ->default(0.0),
-                TextInput::make('total')
-                    ->required()
-                    ->numeric()
-                    ->prefix('$')
-                    ->default(0.0),
-                TextInput::make('saldo')
-                    ->required()
-                    ->numeric()
-                    ->prefix('$')
-                    ->default(0.0),
-                Select::make('status')
-                    ->options(['borrador' => 'Borrador', 'confirmada' => 'Confirmada', 'anulada' => 'Anulada'])
-                    ->default('borrador')
-                    ->required(),
-                TextInput::make('archivo_path')
-                    ->label('Archivo'),
-                Textarea::make('observaciones')
-                    ->columnSpanFull(),
+                Section::make()
+                    ->columnSpan(2)
+                    ->columns(4)
+                    ->schema(self::mainFields()),
+                Section::make('Resumen')
+                    ->columnSpan(1)
+                    ->dense()
+                    ->inlineLabel()
+                    ->schema(self::summaryFields()),
             ]);
+    }
+
+    /**
+     * @return array<int, Component>
+     */
+    private static function mainFields(): array
+    {
+        return [
+            Select::make('supplier_id')
+                ->label('Proveedor')
+                ->relationship('supplier', 'razon_social')
+                ->searchable()
+                ->preload()
+                ->required()
+                ->live()
+                ->afterStateUpdated(function (Get $get, Set $set, ?string $state) {
+                    if (! $state || $get('vence_at')) {
+                        return;
+                    }
+
+                    $supplier = Supplier::find($state);
+                    $fecha = $get('fecha');
+
+                    if ($supplier?->dias_pago && $fecha) {
+                        $set('vence_at', Carbon::parse($fecha)->addDays($supplier->dias_pago)->toDateString());
+                    }
+                })
+                ->columnSpan(2),
+            Select::make('tipo_comprobante')
+                ->label('Tipo de comprobante')
+                ->options([
+                    'factura_a' => 'Factura A',
+                    'factura_b' => 'Factura B',
+                    'factura_c' => 'Factura C',
+                    'remito' => 'Remito',
+                    'otro' => 'Otro',
+                ])
+                ->default('factura_a')
+                ->required(),
+            TextInput::make('numero')
+                ->label('Número'),
+            DatePicker::make('fecha')
+                ->required()
+                ->default(now()),
+            DatePicker::make('vence_at')
+                ->label('Vence'),
+
+            Repeater::make('lines')
+                ->label('Líneas')
+                ->relationship()
+                ->live()
+                ->default([])
+                ->afterStateUpdated(fn (Get $get, Set $set) => self::recalculateSummaryFromRoot($get, $set))
+                ->table([
+                    TableColumn::make('Código')->width('130px'),
+                    TableColumn::make('Producto'),
+                    TableColumn::make('Cantidad')->width('90px'),
+                    TableColumn::make('Costo unit.')->width('120px')->alignment(Alignment::End),
+                    TableColumn::make('Subtotal')->width('120px')->alignment(Alignment::End),
+                ])
+                ->compact()
+                ->schema([
+                    TextEntry::make('barcode')
+                        ->hiddenLabel()
+                        ->state(fn (Get $get) => Product::find($get('product_id'))?->barcode ?? '—')
+                        ->wrap(false)
+                        ->extraAttributes(['style' => 'font-size: 0.75rem;']),
+                    Select::make('product_id')
+                        ->label('Producto')
+                        ->hiddenLabel()
+                        ->searchable()
+                        ->getSearchResultsUsing(fn (string $search): array => Product::query()
+                            ->where('activo', true)
+                            ->where(fn ($query) => $query
+                                ->where('nombre', 'like', "%{$search}%")
+                                ->orWhere('barcode', 'like', "%{$search}%"))
+                            ->limit(50)
+                            ->pluck('nombre', 'id')
+                            ->all())
+                        ->getOptionLabelUsing(fn ($value): ?string => Product::find($value)?->nombre)
+                        ->placeholder('Nombre o código')
+                        ->required()
+                        ->live()
+                        ->afterStateUpdated(function (Set $set, Get $get, ?string $state) {
+                            $product = $state ? Product::find($state) : null;
+
+                            if (! $product) {
+                                return;
+                            }
+
+                            $set('costo_unit', $product->costo_ultimo);
+                            self::recalculateLine($get, $set);
+                        })
+                        ->suffixAction(self::scanBarcodeAction()),
+                    TextInput::make('cantidad')
+                        ->hiddenLabel()
+                        ->required()
+                        ->numeric()
+                        ->default(1)
+                        ->live()
+                        ->extraInputAttributes(['style' => 'font-size: 0.75rem;'])
+                        ->afterStateUpdated(fn (Get $get, Set $set) => self::recalculateLine($get, $set)),
+                    TextInput::make('costo_unit')
+                        ->hiddenLabel()
+                        ->required()
+                        ->numeric()
+                        ->default(0)
+                        ->live()
+                        ->prefix('$')
+                        ->extraInputAttributes(['style' => 'text-align: right; font-size: 0.75rem;'])
+                        ->afterStateUpdated(fn (Get $get, Set $set) => self::recalculateLine($get, $set)),
+                    Hidden::make('subtotal')
+                        ->default(0),
+                    TextEntry::make('subtotal_display')
+                        ->hiddenLabel()
+                        ->state(fn (Get $get) => (float) ($get('subtotal') ?? 0))
+                        ->numeric(decimalPlaces: 2, decimalSeparator: ',', thousandsSeparator: '.')
+                        ->prefix('$')
+                        ->extraAttributes(['style' => 'display: block; text-align: right; font-size: 0.75rem;']),
+                ])
+                ->addActionLabel('Agregar producto')
+                ->required()
+                ->minItems(1)
+                ->columnSpanFull(),
+
+            Section::make()
+                ->collapsible()
+                ->collapsed()
+                ->compact()
+                ->columns(2)
+                ->columnSpanFull()
+                ->schema([
+                    Select::make('warehouse_id')
+                        ->label('Depósito')
+                        ->relationship('warehouse', 'nombre')
+                        ->searchable()
+                        ->preload()
+                        ->required()
+                        ->default(fn () => Warehouse::where('predeterminado', true)->value('id')),
+                    Select::make('user_id')
+                        ->label('Usuario')
+                        ->relationship('user', 'name')
+                        ->searchable()
+                        ->preload()
+                        ->default(fn () => auth()->id()),
+                    FileUpload::make('archivo_path')
+                        ->label('Factura del proveedor')
+                        ->disk('public')
+                        ->directory('purchases')
+                        ->columnSpanFull(),
+                    Textarea::make('observaciones')
+                        ->columnSpanFull(),
+                ]),
+            Hidden::make('status')
+                ->default('borrador'),
+        ];
+    }
+
+    /**
+     * @return array<int, Component>
+     */
+    private static function summaryFields(): array
+    {
+        return [
+            Hidden::make('subtotal')
+                ->default(0),
+            TextEntry::make('subtotal_display')
+                ->label('Subtotal')
+                ->state(fn (Get $get) => (float) ($get('subtotal') ?? 0))
+                ->numeric(decimalPlaces: 2, decimalSeparator: ',', thousandsSeparator: '.')
+                ->prefix('$')
+                ->extraAttributes(['style' => 'display: block; text-align: right;']),
+            TextInput::make('descuento')
+                ->label('Descuento')
+                ->required()
+                ->prefix('$')
+                ->default(0.0)
+                ->live()
+                ->mask(RawJs::make("\$money(\$input, ',')"))
+                ->dehydrateStateUsing(fn ($state) => self::parseAmount($state))
+                ->extraInputAttributes(['style' => 'text-align: right;'])
+                ->afterStateUpdated(fn (Get $get, Set $set) => self::recalculateTotal($get, $set)),
+            TextInput::make('iva')
+                ->label('IVA')
+                ->required()
+                ->prefix('$')
+                ->default(0.0)
+                ->live()
+                ->mask(RawJs::make("\$money(\$input, ',')"))
+                ->dehydrateStateUsing(fn ($state) => self::parseAmount($state))
+                ->extraInputAttributes(['style' => 'text-align: right;'])
+                ->afterStateUpdated(fn (Get $get, Set $set) => self::recalculateTotal($get, $set)),
+            Hidden::make('total')
+                ->default(0),
+            TextEntry::make('total_display')
+                ->label('Total')
+                ->state(fn (Get $get) => (float) ($get('total') ?? 0))
+                ->numeric(decimalPlaces: 2, decimalSeparator: ',', thousandsSeparator: '.')
+                ->prefix('$')
+                ->extraAttributes(['style' => 'display: block; text-align: right;']),
+        ];
+    }
+
+    /**
+     * Botón de escaneo de código de barras con la cámara del dispositivo.
+     * Reusa la misma vista que Ventas (resources/views/filament/sale-form/barcode-scanner.blade.php),
+     * que es genérica y no depende de nada específico de Ventas.
+     */
+    private static function scanBarcodeAction(): Action
+    {
+        return Action::make('scanBarcode')
+            ->label('Escanear código de barras')
+            ->icon(Heroicon::OutlinedCamera)
+            ->color('gray')
+            ->extraAttributes(['class' => 'sm:hidden'])
+            ->modalHeading('Escanear código de barras')
+            ->modalSubmitAction(false)
+            ->modalCancelActionLabel('Cerrar')
+            ->modalContent(fn () => view('filament.sale-form.barcode-scanner'))
+            ->action(function (array $arguments, Set $set, Get $get) {
+                $barcode = trim((string) ($arguments['barcode'] ?? ''));
+
+                if ($barcode === '') {
+                    return;
+                }
+
+                $product = Product::query()
+                    ->where('activo', true)
+                    ->where('barcode', $barcode)
+                    ->first();
+
+                if (! $product) {
+                    Notification::make()
+                        ->title("No se encontró ningún producto con el código {$barcode}")
+                        ->danger()
+                        ->send();
+
+                    return;
+                }
+
+                $set('product_id', $product->id);
+                $set('costo_unit', $product->costo_ultimo);
+                self::recalculateLine($get, $set);
+            });
+    }
+
+    /**
+     * Recalcula el subtotal de una línea (cantidad × costo unitario). Se
+     * llama desde dentro de un item del repeater, así que $get/$set están a
+     * nivel de esa línea.
+     */
+    private static function recalculateLine(Get $get, Set $set): void
+    {
+        $cantidad = (float) ($get('cantidad') ?? 0);
+        $costoUnit = (float) ($get('costo_unit') ?? 0);
+
+        $set('subtotal', number_format($cantidad * $costoUnit, 2, '.', ''));
+
+        self::recalculateSummaryFromRoot(
+            fn (string $key) => $get("../../{$key}"),
+            fn (string $key, $value) => $set("../../{$key}", $value),
+        );
+    }
+
+    /**
+     * Suma el subtotal de todas las líneas y recalcula subtotal/total del
+     * resumen. Recibe $get/$set ya resueltos a nivel raíz (o closures que lo
+     * simulan).
+     */
+    private static function recalculateSummaryFromRoot(Get|Closure $get, Set|Closure $set): void
+    {
+        $lines = $get('lines') ?? [];
+
+        $subtotal = collect($lines)->sum(fn (array $line): float => (float) ($line['subtotal'] ?? 0));
+
+        $set('subtotal', number_format($subtotal, 2, '.', ''));
+
+        self::recalculateTotal($get, $set);
+    }
+
+    /**
+     * Total = subtotal - descuento + iva.
+     */
+    private static function recalculateTotal(Get|Closure $get, Set|Closure $set): void
+    {
+        $subtotal = (float) ($get('subtotal') ?? 0);
+        $descuento = self::parseAmount($get('descuento'));
+        $iva = self::parseAmount($get('iva'));
+
+        $set('total', number_format($subtotal - $descuento + $iva, 2, '.', ''));
+    }
+
+    /**
+     * Convierte un monto tipeado con el mask "$money($input, ',')" (punto de
+     * miles, coma decimal) a un float plano. Los valores que ya llegan
+     * numéricos (ej. el 0.0 por defecto, sin tocar) se devuelven tal cual.
+     */
+    private static function parseAmount(mixed $value): float
+    {
+        if (blank($value)) {
+            return 0.0;
+        }
+
+        if (is_numeric($value)) {
+            return (float) $value;
+        }
+
+        return (float) str_replace(['.', ','], ['', '.'], (string) $value);
     }
 }
