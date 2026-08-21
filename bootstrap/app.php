@@ -12,7 +12,12 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        //
+        // Las rutas fuera del panel de Filament (ej. sales.comprobante,
+        // purchases.archivo) usan el middleware 'auth' genérico, que por
+        // defecto intenta redirigir a la ruta con nombre "login" -que no
+        // existe, Filament registra la suya con otro nombre por panel- y
+        // rompe con un 500 para un invitado. Se apunta al login del panel.
+        $middleware->redirectGuestsTo(fn () => route('filament.dashboard.auth.login'));
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(
