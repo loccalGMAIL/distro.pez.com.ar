@@ -191,7 +191,7 @@ class PurchaseForm
                         ->default(fn () => auth()->id()),
                     FileUpload::make('archivo_path')
                         ->label('Factura del proveedor')
-                        ->disk('public')
+                        ->disk('local')
                         ->directory('purchases')
                         ->columnSpanFull(),
                     Textarea::make('observaciones')

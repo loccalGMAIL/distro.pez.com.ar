@@ -119,6 +119,14 @@ class PurchasesTable
                     ->requiresConfirmation()
                     ->modalDescription('Anula la compra, revierte el stock ingresado y cualquier pago imputado. No se puede deshacer.')
                     ->action(fn (Purchase $record) => $record->anular()),
+                Action::make('verArchivo')
+                    ->label('Factura')
+                    ->iconButton()
+                    ->icon(Heroicon::DocumentArrowDown)
+                    ->color('gray')
+                    ->visible(fn (Purchase $record): bool => filled($record->archivo_path))
+                    ->url(fn (Purchase $record): string => route('purchases.archivo', $record))
+                    ->openUrlInNewTab(),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
