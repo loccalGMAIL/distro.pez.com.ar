@@ -8,6 +8,43 @@ y este proyecto sigue [Semantic Versioning](https://semver.org/lang/es/) (ver
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-08-20
+
+### Added
+
+- Módulo de Compras llevado al mismo nivel que Ventas: alta por modal (líneas
+  como repeater estilo factura, con buscador de producto por nombre/código de
+  barras y escaneo con cámara), estado `borrador` editable, y acciones
+  "Confirmar"/"Anular" en `Purchase` que generan `stock_movements` (tipo
+  `compra`/`devolucion_prov`) y actualizan `Product.costo_ultimo` con el
+  último precio pagado.
+- Filtro por proveedor en la tabla de Compras.
+- Escaneo de facturas de compra con IA (Claude vision, `claude-haiku-4-5` por
+  default vía `ANTHROPIC_MODEL`): página nueva "Escanear factura" con un
+  flujo de 2 pasos (Capturar → Revisar). La IA transcribe encabezado y líneas
+  sin hacer ninguna cuenta propia (ni aritmética, ni conversión de unidades,
+  ni adivina fechas/números de comprobante inciertos); un humano revisa y
+  corrige antes de crear la compra en `borrador`. Las correcciones de
+  producto se recuerdan por proveedor (`supplier_product_links`), así que el
+  próximo escaneo de ese proveedor ya viene vinculado.
+- Card "Nueva compra" en el dashboard, con su propio color/ícono para
+  diferenciarse de "Nueva venta" a simple vista.
+
+### Changed
+
+- El archivo adjunto de una compra (`archivo_path`, ya sea cargado a mano o
+  por el escaneo con IA) pasa del disco público al privado, servido por una
+  ruta autenticada nueva (`purchases.archivo`) — las facturas tienen CUIT y
+  precios de proveedores.
+
+### Fixed
+
+- Las rutas fuera del panel de Filament con `middleware('auth')` (comprobante
+  de venta, archivo de compra) rompían con un 500 para un usuario no
+  logueado en vez de redirigir al login, porque el middleware genérico
+  buscaba una ruta con nombre `login` que no existe (Filament registra la
+  suya con otro nombre por panel).
+
 ## [0.4.0] - 2026-08-20
 
 ### Added
