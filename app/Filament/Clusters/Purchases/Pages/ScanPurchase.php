@@ -2,6 +2,7 @@
 
 namespace App\Filament\Clusters\Purchases\Pages;
 
+use App\Filament\Clusters\Catalog\Resources\Products\Schemas\ProductForm;
 use App\Filament\Clusters\Purchases\PurchasesCluster;
 use App\Filament\Clusters\Purchases\Resources\Purchases\PurchaseResource;
 use App\Models\Product;
@@ -146,8 +147,10 @@ class ScanPurchase extends Page
                 ->preload()
                 ->required()
                 ->createOptionForm([
-                    TextInput::make('razon_social')->label('Razón social')->required(),
-                    TextInput::make('cuit')->label('CUIT'),
+                    TextInput::make('razon_social')->label('Razón social')->required()
+                        ->default(fn (): ?string => $this->ocrData['proveedor'] ?? null),
+                    TextInput::make('cuit')->label('CUIT')
+                        ->default(fn (): ?string => $this->ocrData['cuit'] ?? null),
                 ])
                 ->createOptionUsing(fn (array $data): int => Supplier::create([
                     ...$data,
@@ -215,6 +218,19 @@ class ScanPurchase extends Page
                             ->all())
                         ->getOptionLabelUsing(fn ($value): ?string => Product::find($value)?->nombre)
                         ->placeholder('Sin match — elegí uno o borrá la línea')
+                        ->createOptionForm(ProductForm::quickCreateFields())
+                        ->createOptionUsing(fn (array $data): int => Product::create([
+                            ...$data,
+                            'activo' => true,
+                            'tracks_lot' => false,
+                        ])->getKey())
+                        ->createOptionAction(fn (Action $action, Get $get): Action => $action->fillForm([
+                            'sku' => ProductForm::generateSku(),
+                            'nombre' => $get('descripcion'),
+                            'base_unit' => $get('unidad'),
+                            'costo_ultimo' => (float) ($get('costo_unit') ?? 0),
+                        ]))
+                        ->extraAttributes(['style' => 'min-width: 12rem;'])
                         ->live()
                         ->afterStateUpdated(function (Get $get, Set $set, ?string $state) {
                             $product = $state ? Product::find($state) : null;
@@ -323,6 +339,28 @@ class ScanPurchase extends Page
         $remembered = $supplier
             ? app(ProductLinkMemory::class)->recallMany($supplier->id, $descriptionKeys)
             : [];
+
+        if (! $supplier && filled($extraction['proveedor'])) {
+            Notification::make()
+                ->title("No encontramos al proveedor \"{$extraction['proveedor']}\"")
+                ->body('Podés crearlo con el botón "+" junto al campo Proveedor — ya viene precargado con lo que leímos de la factura.')
+                ->warning()
+                ->send();
+        }
+
+        $lineasSinProducto = collect($extraction['lineas'])
+            ->filter(fn (array $linea): bool => blank($remembered[$linea['description_key']] ?? $linea['matched_product_id']))
+            ->count();
+
+        if ($lineasSinProducto > 0) {
+            Notification::make()
+                ->title($lineasSinProducto === 1
+                    ? 'Hay 1 línea sin producto detectado'
+                    : "Hay {$lineasSinProducto} líneas sin producto detectado")
+                ->body('Elegí uno existente o creá uno nuevo con el botón "+" en esa línea.')
+                ->warning()
+                ->send();
+        }
 
         $tiposValidos = ['factura_a', 'factura_b', 'factura_c', 'remito', 'otro'];
 

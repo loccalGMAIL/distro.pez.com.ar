@@ -7,6 +7,7 @@ use Filament\Actions\Action;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
+use Filament\Schemas\Components\Component;
 use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
@@ -49,18 +50,7 @@ class ProductForm
                     ]),
                 Select::make('base_unit')
                     ->label('Unidad base')
-                    ->options([
-                        'unidad' => 'Unidad',
-                        'kg' => 'Kilogramo',
-                        'gramo' => 'Gramo',
-                        'litro' => 'Litro',
-                        'mililitro' => 'Mililitro',
-                        'docena' => 'Docena',
-                        'caja' => 'Caja',
-                        'bulto' => 'Bulto',
-                        'paquete' => 'Paquete',
-                        'metro' => 'Metro',
-                    ])
+                    ->options(self::baseUnitOptions())
                     ->required()
                     ->default('unidad'),
                 TextInput::make('costo_ultimo')
@@ -82,10 +72,68 @@ class ProductForm
     }
 
     /**
+     * Campos mínimos para dar de alta un producto al vuelo (ej. desde el
+     * escaneo de facturas): solo lo que la tabla exige sin default (`sku`)
+     * más lo que conviene precargar con lo detectado por la IA (`nombre`,
+     * `base_unit`, `costo_ultimo`). El resto (barcode, categoría, stock
+     * mínimo, etc.) tiene default en la tabla y se completa después desde
+     * el catálogo.
+     *
+     * @return array<int, Component>
+     */
+    public static function quickCreateFields(): array
+    {
+        return [
+            TextInput::make('sku')
+                ->label('SKU')
+                ->required()
+                ->default(fn () => self::generateSku())
+                ->suffixAction(
+                    Action::make('generateSku')
+                        ->label('Generar')
+                        ->icon(Heroicon::Sparkles)
+                        ->action(fn (Set $set) => $set('sku', self::generateSku())),
+                ),
+            TextInput::make('nombre')
+                ->required(),
+            Select::make('base_unit')
+                ->label('Unidad base')
+                ->options(self::baseUnitOptions())
+                ->required()
+                ->default('unidad'),
+            TextInput::make('costo_ultimo')
+                ->label('Costo')
+                ->required()
+                ->numeric()
+                ->prefix('$')
+                ->default(0.0),
+        ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private static function baseUnitOptions(): array
+    {
+        return [
+            'unidad' => 'Unidad',
+            'kg' => 'Kilogramo',
+            'gramo' => 'Gramo',
+            'litro' => 'Litro',
+            'mililitro' => 'Mililitro',
+            'docena' => 'Docena',
+            'caja' => 'Caja',
+            'bulto' => 'Bulto',
+            'paquete' => 'Paquete',
+            'metro' => 'Metro',
+        ];
+    }
+
+    /**
      * SKU correlativo: SKU-000001, SKU-000002, ... a partir del mayor
      * número ya usado (incluye productos con soft delete, por el unique).
      */
-    private static function generateSku(): string
+    public static function generateSku(): string
     {
         $next = 1 + (Product::withTrashed()
             ->where('sku', 'like', 'SKU-%')
