@@ -37,7 +37,7 @@ class DashboardPanelProvider extends PanelProvider
                 fn (): View => view('filament.auth.google-login-button'),
             )
             ->brandLogo(fn (): View => view('filament.brand.logo'))
-            ->brandLogoHeight('2.75rem')
+            ->brandLogoHeight('auto')
             ->colors([
                 'primary' => Color::Amber,
             ])

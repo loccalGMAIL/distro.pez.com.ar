@@ -8,6 +8,25 @@ y este proyecto sigue [Semantic Versioning](https://semver.org/lang/es/) (ver
 
 ## [Unreleased]
 
+## [0.5.2] - 2026-08-22
+
+### Changed
+
+- El nombre que se muestra arriba a la izquierda del sidebar ahora sale de
+  la razón social cargada en Configuración → General (`CompanySetting`),
+  en vez del `APP_NAME` fijo del `.env`. Si todavía no hay razón social
+  cargada, sigue mostrando el nombre de la app como antes. El texto admite
+  hasta dos líneas sin romper el alto del header (`brandLogoHeight` pasó a
+  `auto`) para nombres largos.
+- Tamaño de letra del nombre del comercio y del número de versión en el
+  sidebar, subido un 10% (14px→15.4px y 10px→11px).
+
+### Fixed
+
+- Reemplazado el favicon por defecto de Laravel por un ícono propio: una
+  "d" minúscula en naranja (Lato Bold) dentro de un círculo negro, aplicado
+  a `favicon.ico`, `favicon.svg` y `apple-touch-icon.png`.
+
 ## [0.5.1] - 2026-08-22
 
 ### Added
