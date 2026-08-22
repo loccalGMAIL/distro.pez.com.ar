@@ -8,6 +8,19 @@ y este proyecto sigue [Semantic Versioning](https://semver.org/lang/es/) (ver
 
 ## [Unreleased]
 
+## [0.5.1] - 2026-08-22
+
+### Added
+
+- Alta rápida de cliente desde el modal de creación de venta (`SaleForm`): el
+  Select de cliente permite crear uno nuevo en un modal sin salir de la venta
+  (`createOptionForm`), con el mínimo de campos que la tabla `customers`
+  exige sin default (razón social y lista de precios) — el resto se completa
+  después desde Clientes.
+- Filtro por cliente en la tabla de Ventas.
+- Número de versión de la app debajo del nombre del comercio (logo del
+  panel), en tipografía chica y gris para no competir con el nombre.
+
 ## [0.5.0] - 2026-08-20
 
 ### Added
