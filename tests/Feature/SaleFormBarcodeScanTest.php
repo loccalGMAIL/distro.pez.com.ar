@@ -11,7 +11,7 @@ use Filament\Actions\Testing\TestAction;
 use Livewire\Livewire;
 
 beforeEach(function () {
-    $this->actingAs(User::factory()->create(['role' => 'admin', 'activo' => true]));
+    $this->actingAs(User::factory()->admin()->create(['activo' => true]));
     Customer::factory()->create(['predeterminado' => true]);
     PriceList::factory()->create(['predeterminada' => true]);
     Warehouse::factory()->create(['predeterminado' => true]);

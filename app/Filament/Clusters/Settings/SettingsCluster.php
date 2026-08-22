@@ -15,6 +15,4 @@ class SettingsCluster extends Cluster
     protected static ?string $clusterBreadcrumb = 'Configuración';
 
     protected static ?int $navigationSort = 6;
-
-    protected static bool $shouldRegisterSubNavigation = false;
 }
