@@ -2,6 +2,7 @@
 
 namespace App\Filament\Clusters\Sales\Resources\Sales\Schemas;
 
+use App\Filament\Clusters\Partners\Resources\Customers\Schemas\CustomerForm;
 use App\Models\Customer;
 use App\Models\PriceList;
 use App\Models\Product;
@@ -102,6 +103,8 @@ class SaleForm
                         $set('price_list_id', Customer::find($state)?->price_list_id);
                     }
                 })
+                ->createOptionForm(CustomerForm::quickCreateFields())
+                ->createOptionModalHeading('Nuevo cliente')
                 ->columnSpan(2),
             Select::make('price_list_id')
                 ->label('Lista')

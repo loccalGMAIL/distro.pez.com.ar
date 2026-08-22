@@ -36,6 +36,8 @@ class DashboardPanelProvider extends PanelProvider
                 PanelsRenderHook::AUTH_LOGIN_FORM_AFTER,
                 fn (): View => view('filament.auth.google-login-button'),
             )
+            ->brandLogo(fn (): View => view('filament.brand.logo'))
+            ->brandLogoHeight('auto')
             ->colors([
                 'primary' => Color::Amber,
             ])
