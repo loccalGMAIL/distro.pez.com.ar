@@ -21,3 +21,8 @@ Se necesita poder mostrar/consultar la versión desplegada de la app (soporte, c
   - **MAJOR** (`x.0.0`): cambios incompatibles (a partir de `1.0.0`, cuando el proyecto se considere estable).
 - Antes de `1.0.0`, minor puede incluir cambios incompatibles si es necesario (convención estándar de SemVer para versiones `0.y.z`).
 - Leer la versión actual en código con `config('app.version')`.
+- Al bumpear `APP_VERSION` en `.env` / `.env.example`, actualizar también el
+  default de `env('APP_VERSION', '...')` en `config/app.php` para que quede
+  igual. Es el fallback si `.env` no define la variable (ej. instalación
+  fresca), así que si no se actualiza queda desincronizado del último
+  release.
