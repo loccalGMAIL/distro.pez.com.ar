@@ -37,19 +37,20 @@ class PurchaseForm
                 Section::make()
                     ->columnSpan(2)
                     ->columns(4)
-                    ->schema(self::mainFields()),
+                    ->schema(self::headerFields()),
                 Section::make('Resumen')
                     ->columnSpan(1)
                     ->dense()
                     ->inlineLabel()
                     ->schema(self::summaryFields()),
+                self::linesRepeater(),
             ]);
     }
 
     /**
      * @return array<int, Component>
      */
-    private static function mainFields(): array
+    private static function headerFields(): array
     {
         return [
             Select::make('supplier_id')
@@ -73,7 +74,7 @@ class PurchaseForm
                 })
                 ->columnSpan(2),
             Select::make('tipo_comprobante')
-                ->label('Tipo de comprobante')
+                ->label('Tipo')
                 ->options([
                     'factura_a' => 'Factura A',
                     'factura_b' => 'Factura B',
@@ -90,84 +91,6 @@ class PurchaseForm
                 ->default(now()),
             DatePicker::make('vence_at')
                 ->label('Vence'),
-
-            Repeater::make('lines')
-                ->label('Líneas')
-                ->relationship()
-                ->live()
-                ->default([])
-                ->afterStateUpdated(fn (Get $get, Set $set) => self::recalculateSummaryFromRoot($get, $set))
-                ->table([
-                    TableColumn::make('Código')->width('130px'),
-                    TableColumn::make('Producto'),
-                    TableColumn::make('Cantidad')->width('90px'),
-                    TableColumn::make('Costo unit.')->width('120px')->alignment(Alignment::End),
-                    TableColumn::make('Subtotal')->width('120px')->alignment(Alignment::End),
-                ])
-                ->compact()
-                ->schema([
-                    TextEntry::make('barcode')
-                        ->hiddenLabel()
-                        ->state(fn (Get $get) => Product::find($get('product_id'))?->barcode ?? '—')
-                        ->wrap(false)
-                        ->extraAttributes(['style' => 'font-size: 0.75rem;']),
-                    Select::make('product_id')
-                        ->label('Producto')
-                        ->hiddenLabel()
-                        ->searchable()
-                        ->getSearchResultsUsing(fn (string $search): array => Product::query()
-                            ->where('activo', true)
-                            ->where(fn ($query) => $query
-                                ->where('nombre', 'like', "%{$search}%")
-                                ->orWhere('barcode', 'like', "%{$search}%"))
-                            ->limit(50)
-                            ->pluck('nombre', 'id')
-                            ->all())
-                        ->getOptionLabelUsing(fn ($value): ?string => Product::find($value)?->nombre)
-                        ->placeholder('Nombre o código')
-                        ->required()
-                        ->live()
-                        ->afterStateUpdated(function (Set $set, Get $get, ?string $state) {
-                            $product = $state ? Product::find($state) : null;
-
-                            if (! $product) {
-                                return;
-                            }
-
-                            $set('costo_unit', $product->costo_ultimo);
-                            self::recalculateLine($get, $set);
-                        })
-                        ->suffixAction(self::scanBarcodeAction()),
-                    TextInput::make('cantidad')
-                        ->hiddenLabel()
-                        ->required()
-                        ->numeric()
-                        ->default(1)
-                        ->live()
-                        ->extraInputAttributes(['style' => 'font-size: 0.75rem;'])
-                        ->afterStateUpdated(fn (Get $get, Set $set) => self::recalculateLine($get, $set)),
-                    TextInput::make('costo_unit')
-                        ->hiddenLabel()
-                        ->required()
-                        ->numeric()
-                        ->default(0)
-                        ->live()
-                        ->prefix('$')
-                        ->extraInputAttributes(['style' => 'text-align: right; font-size: 0.75rem;'])
-                        ->afterStateUpdated(fn (Get $get, Set $set) => self::recalculateLine($get, $set)),
-                    Hidden::make('subtotal')
-                        ->default(0),
-                    TextEntry::make('subtotal_display')
-                        ->hiddenLabel()
-                        ->state(fn (Get $get) => (float) ($get('subtotal') ?? 0))
-                        ->numeric(decimalPlaces: 2, decimalSeparator: ',', thousandsSeparator: '.')
-                        ->prefix('$')
-                        ->extraAttributes(['style' => 'display: block; text-align: right; font-size: 0.75rem;']),
-                ])
-                ->addActionLabel('Agregar producto')
-                ->required()
-                ->minItems(1)
-                ->columnSpanFull(),
 
             Section::make()
                 ->collapsible()
@@ -245,6 +168,96 @@ class PurchaseForm
                 ->prefix('$')
                 ->extraAttributes(['style' => 'display: block; text-align: right;']),
         ];
+    }
+
+    /**
+     * Fuera de la Section de 2/3 a propósito: con 5 columnas (Código,
+     * Producto, Cantidad, Costo unit., Subtotal) necesita todo el ancho de
+     * la página, no solo el de la columna que comparte con "Resumen" — ahí
+     * el nombre del producto quedaba tan apretado que el navegador lo
+     * partía letra por letra (`word-break: break-word` del Select de
+     * Filament sobre una columna de tabla sin ancho propio).
+     */
+    private static function linesRepeater(): Repeater
+    {
+        return Repeater::make('lines')
+            ->label('Líneas')
+            ->relationship()
+            ->live()
+            ->default([])
+            ->afterStateUpdated(fn (Get $get, Set $set) => self::recalculateSummaryFromRoot($get, $set))
+            ->table([
+                TableColumn::make('Código')->width('130px'),
+                TableColumn::make('Producto'),
+                TableColumn::make('Cantidad')->width('90px'),
+                TableColumn::make('Costo unit.')->width('120px')->alignment(Alignment::End),
+                TableColumn::make('Subtotal')->width('120px')->alignment(Alignment::End),
+            ])
+            ->compact()
+            ->schema([
+                TextEntry::make('barcode')
+                    ->hiddenLabel()
+                    ->state(fn (Get $get) => Product::find($get('product_id'))?->barcode ?? '—')
+                    ->wrap(false)
+                    ->extraAttributes(['style' => 'font-size: 0.75rem;']),
+                Select::make('product_id')
+                    ->label('Producto')
+                    ->hiddenLabel()
+                    ->searchable()
+                    ->getSearchResultsUsing(fn (string $search): array => Product::query()
+                        ->where('activo', true)
+                        ->where(fn ($query) => $query
+                            ->where('nombre', 'like', "%{$search}%")
+                            ->orWhere('barcode', 'like', "%{$search}%"))
+                        ->limit(50)
+                        ->pluck('nombre', 'id')
+                        ->all())
+                    ->getOptionLabelUsing(fn ($value): ?string => Product::find($value)?->nombre)
+                    ->placeholder('Nombre o código')
+                    ->required()
+                    ->live()
+                    ->afterStateUpdated(function (Set $set, Get $get, ?string $state) {
+                        $product = $state ? Product::find($state) : null;
+
+                        if (! $product) {
+                            return;
+                        }
+
+                        $set('costo_unit', $product->costo_ultimo);
+                        self::recalculateLine($get, $set);
+                    })
+                    ->suffixAction(self::scanBarcodeAction())
+                    ->extraAttributes(['style' => 'min-width: 12rem;']),
+                TextInput::make('cantidad')
+                    ->hiddenLabel()
+                    ->required()
+                    ->numeric()
+                    ->default(1)
+                    ->live()
+                    ->extraInputAttributes(['style' => 'font-size: 0.75rem;'])
+                    ->afterStateUpdated(fn (Get $get, Set $set) => self::recalculateLine($get, $set)),
+                TextInput::make('costo_unit')
+                    ->hiddenLabel()
+                    ->required()
+                    ->numeric()
+                    ->default(0)
+                    ->live()
+                    ->prefix('$')
+                    ->extraInputAttributes(['style' => 'text-align: right; font-size: 0.75rem;'])
+                    ->afterStateUpdated(fn (Get $get, Set $set) => self::recalculateLine($get, $set)),
+                Hidden::make('subtotal')
+                    ->default(0),
+                TextEntry::make('subtotal_display')
+                    ->hiddenLabel()
+                    ->state(fn (Get $get) => (float) ($get('subtotal') ?? 0))
+                    ->numeric(decimalPlaces: 2, decimalSeparator: ',', thousandsSeparator: '.')
+                    ->prefix('$')
+                    ->extraAttributes(['style' => 'display: block; text-align: right; font-size: 0.75rem;']),
+            ])
+            ->addActionLabel('Agregar producto')
+            ->required()
+            ->minItems(1)
+            ->columnSpanFull();
     }
 
     /**

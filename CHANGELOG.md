@@ -10,6 +10,16 @@ y este proyecto sigue [Semantic Versioning](https://semver.org/lang/es/) (ver
 
 ## [0.5.2] - 2026-08-22
 
+### Added
+
+- Alta rápida de proveedor y de producto desde el escaneo de facturas de
+  compra (`ScanPurchase`): si la IA no encuentra coincidencia para el
+  proveedor o para una línea, se sugiere crearlo ahí mismo con un modal
+  precargado con lo que se leyó de la factura (razón social/CUIT del
+  proveedor; nombre, unidad y costo del producto), sin salir del escaneo.
+- El card "Nueva compra" del dashboard ahora lleva directo al escaneo de
+  facturas (`ScanPurchase`) en vez de abrir el modal de alta manual.
+
 ### Changed
 
 - El nombre que se muestra arriba a la izquierda del sidebar ahora sale de
@@ -26,6 +36,12 @@ y este proyecto sigue [Semantic Versioning](https://semver.org/lang/es/) (ver
 - Reemplazado el favicon por defecto de Laravel por un ícono propio: una
   "d" minúscula en naranja (Lato Bold) dentro de un círculo negro, aplicado
   a `favicon.ico`, `favicon.svg` y `apple-touch-icon.png`.
+- La tabla de líneas del modal de edición de una compra (`PurchaseForm`)
+  partía el nombre del producto letra por letra en pantallas grandes: la
+  tabla vivía dentro de la sección compartida con "Resumen" (2/3 del
+  ancho) y la columna "Producto" era la única sin ancho fijo, así que
+  absorbía todo el faltante y quedaba demasiado angosta. Ahora la tabla de
+  líneas ocupa todo el ancho de la página.
 
 ## [0.5.1] - 2026-08-22
 
