@@ -19,6 +19,8 @@ class PriceListResource extends Resource
 {
     protected static ?string $model = PriceList::class;
 
+    protected static ?string $recordTitleAttribute = 'nombre';
+
     protected static ?string $modelLabel = 'Lista de precios';
 
     protected static ?string $pluralModelLabel = 'Listas de precios';
@@ -44,6 +46,14 @@ class PriceListResource extends Resource
         return [
             //
         ];
+    }
+
+    /**
+     * @return array<string>
+     */
+    public static function getGloballySearchableAttributes(): array
+    {
+        return ['nombre', 'codigo'];
     }
 
     public static function getPages(): array

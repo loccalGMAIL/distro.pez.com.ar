@@ -8,6 +8,20 @@ y este proyecto sigue [Semantic Versioning](https://semver.org/lang/es/) (ver
 
 ## [Unreleased]
 
+## [0.5.4] - 2026-08-23
+
+### Fixed
+
+- La búsqueda global del panel (barra superior, al lado del ícono de
+  usuario) no devolvía resultados de ningún resource: Filament requiere que
+  cada Resource declare qué atributos son buscables globalmente, y ninguno
+  lo hacía. Se agregó esa configuración a Productos, Listas de precios,
+  Depósitos, Clientes, Proveedores, Ventas, Compras, Gastos, Pagos y
+  Usuarios (por nombre/código/CUIT/email/número de comprobante, según el
+  resource, incluyendo campos de relación como cliente o proveedor).
+  Registro de actividades y Movimientos de stock quedan fuera a propósito
+  (no tienen un título de una sola columna).
+
 ## [0.5.3] - 2026-08-22
 
 ### Added
