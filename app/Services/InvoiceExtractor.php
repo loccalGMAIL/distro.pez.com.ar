@@ -4,10 +4,14 @@ namespace App\Services;
 
 use App\Models\Product;
 use App\Models\SupplierProductLink;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Http;
 use RuntimeException;
 
+/**
+ * @phpstan-type CatalogItem array{id: int, nombre: string, barcode: string|null, categoria: string|null}
+ * @phpstan-type InvoiceLine array{descripcion: string, description_key: string, cantidad: float, unidad: string, precio_unitario: float, subtotal: float, matched_product_id: int|null, consistente: bool}
+ * @phpstan-type InvoiceExtraction array{proveedor: mixed, cuit: mixed, tipo_comprobante: mixed, punto_venta: mixed, numero: string|null, fecha: string|null, vencimiento: string|null, subtotal: float|null, iva: float|null, total: float|null, lineas: array<int, InvoiceLine>}
+ */
 class InvoiceExtractor
 {
     /**
@@ -45,7 +49,7 @@ class InvoiceExtractor
      * la factura, la aritmética y las decisiones quedan para la revisión
      * humana.
      *
-     * @return array<string, mixed>
+     * @return InvoiceExtraction
      */
     public function extract(string $absolutePath, string $mime): array
     {
@@ -80,10 +84,11 @@ class InvoiceExtractor
             throw new RuntimeException('Error llamando a la API de Claude: '.$response->body());
         }
 
-        $text = collect($response->json('content', []))
-            ->firstWhere('type', 'text')['text'] ?? '';
+        $content = $response->json('content');
+        $textBlock = collect(is_array($content) ? $content : [])->firstWhere('type', 'text');
+        $text = is_array($textBlock) ? (string) ($textBlock['text'] ?? '') : '';
 
-        return $this->normalize($this->parseJson($text), $catalog->pluck('id')->all());
+        return $this->normalize($this->parseJson($text), array_column($catalog, 'id'));
     }
 
     /**
@@ -91,7 +96,13 @@ class InvoiceExtractor
      */
     private function documentBlock(string $absolutePath, string $mime): array
     {
-        $data = base64_encode(file_get_contents($absolutePath));
+        $contents = file_get_contents($absolutePath);
+
+        if ($contents === false) {
+            throw new RuntimeException("No se pudo leer el archivo {$absolutePath}.");
+        }
+
+        $data = base64_encode($contents);
 
         return [
             'type' => $mime === 'application/pdf' ? 'document' : 'image',
@@ -104,9 +115,9 @@ class InvoiceExtractor
     }
 
     /**
-     * @return Collection<int, array{id: int, nombre: string, barcode: ?string, categoria: ?string}>
+     * @return array<int, CatalogItem>
      */
-    private function activeCatalog(): Collection
+    private function activeCatalog(): array
     {
         return Product::query()
             ->where('activo', true)
@@ -117,17 +128,19 @@ class InvoiceExtractor
                 'nombre' => $product->nombre,
                 'barcode' => $product->barcode,
                 'categoria' => $product->category?->nombre,
-            ]);
+            ])
+            ->all();
     }
 
     /**
-     * @param  Collection<int, array{id: int, nombre: string, barcode: ?string, categoria: ?string}>  $catalog
+     * @param  array<int, CatalogItem>  $catalog
      */
-    private function prompt(Collection $catalog): string
+    private function prompt(array $catalog): string
     {
-        $catalogJson = $catalog->map(fn (array $p): string => "{$p['id']}: {$p['nombre']}"
-            .($p['barcode'] ? " (código {$p['barcode']})" : '')
-            .($p['categoria'] ? " [{$p['categoria']}]" : ''))
+        $catalogJson = collect($catalog)
+            ->map(fn (array $p): string => "{$p['id']}: {$p['nombre']}"
+                .($p['barcode'] ? " (código {$p['barcode']})" : '')
+                .($p['categoria'] ? " [{$p['categoria']}]" : ''))
             ->implode("\n");
 
         return <<<PROMPT
@@ -208,11 +221,11 @@ class InvoiceExtractor
     /**
      * @param  array<string, mixed>  $data
      * @param  array<int, int>  $catalogIds
-     * @return array<string, mixed>
+     * @return InvoiceExtraction
      */
     private function normalize(array $data, array $catalogIds): array
     {
-        $lines = collect($data['lineas'] ?? [])
+        $lines = collect($this->rawLines($data))
             ->map(function (array $line) use ($catalogIds): array {
                 $descripcion = (string) ($line['descripcion'] ?? '');
                 $cantidad = $this->parseDecimal($line['cantidad'] ?? null) ?? 0.0;
@@ -247,6 +260,24 @@ class InvoiceExtractor
             'total' => $this->parseDecimal($data['total'] ?? null),
             'lineas' => $lines,
         ];
+    }
+
+    /**
+     * Las líneas tal cual vinieron en el JSON de la IA, descartando lo que no
+     * sea un objeto (la respuesta no está garantizada).
+     *
+     * @param  array<string, mixed>  $data
+     * @return array<int, array<string, mixed>>
+     */
+    private function rawLines(array $data): array
+    {
+        $lines = $data['lineas'] ?? null;
+
+        if (! is_array($lines)) {
+            return [];
+        }
+
+        return array_values(array_filter($lines, is_array(...)));
     }
 
     private function composeNumero(?string $puntoVenta, ?string $numero): ?string

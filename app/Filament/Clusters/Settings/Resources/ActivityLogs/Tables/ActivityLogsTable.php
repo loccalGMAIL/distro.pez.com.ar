@@ -138,7 +138,7 @@ class ActivityLogsTable
                                 $properties = $state instanceof Collection ? $state->all() : ($state ?? []);
 
                                 return filled($properties)
-                                    ? json_encode($properties, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE)
+                                    ? (json_encode($properties, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) ?: '—')
                                     : '—';
                             })
                             ->fontFamily(FontFamily::Mono)

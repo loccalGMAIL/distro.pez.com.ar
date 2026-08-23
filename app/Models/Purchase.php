@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Database\Factories\PurchaseFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -14,6 +15,7 @@ use Spatie\Activitylog\Traits\LogsActivity;
 
 class Purchase extends Model
 {
+    /** @use HasFactory<PurchaseFactory> */
     use HasFactory, LogsActivity, SoftDeletes;
 
     protected $fillable = [
@@ -54,31 +56,49 @@ class Purchase extends Model
         return LogOptions::defaults()->logAll()->logOnlyDirty()->dontSubmitEmptyLogs();
     }
 
+    /**
+     * @return BelongsTo<Supplier, $this>
+     */
     public function supplier(): BelongsTo
     {
         return $this->belongsTo(Supplier::class);
     }
 
+    /**
+     * @return BelongsTo<Warehouse, $this>
+     */
     public function warehouse(): BelongsTo
     {
         return $this->belongsTo(Warehouse::class);
     }
 
+    /**
+     * @return BelongsTo<User, $this>
+     */
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }
 
+    /**
+     * @return HasMany<PurchaseLine, $this>
+     */
     public function lines(): HasMany
     {
         return $this->hasMany(PurchaseLine::class);
     }
 
+    /**
+     * @return MorphMany<PaymentAllocation, $this>
+     */
     public function paymentAllocations(): MorphMany
     {
         return $this->morphMany(PaymentAllocation::class, 'allocatable');
     }
 
+    /**
+     * @return MorphMany<StockMovement, $this>
+     */
     public function stockMovements(): MorphMany
     {
         return $this->morphMany(StockMovement::class, 'source');

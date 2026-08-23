@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Database\Factories\ProductFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -12,6 +13,7 @@ use Spatie\Activitylog\Traits\LogsActivity;
 
 class Product extends Model
 {
+    /** @use HasFactory<ProductFactory> */
     use HasFactory, LogsActivity, SoftDeletes;
 
     protected $fillable = [
@@ -41,21 +43,33 @@ class Product extends Model
         return LogOptions::defaults()->logAll()->logOnlyDirty()->dontSubmitEmptyLogs();
     }
 
+    /**
+     * @return BelongsTo<ProductCategory, $this>
+     */
     public function category(): BelongsTo
     {
         return $this->belongsTo(ProductCategory::class, 'product_category_id');
     }
 
+    /**
+     * @return HasMany<PurchaseLine, $this>
+     */
     public function purchaseLines(): HasMany
     {
         return $this->hasMany(PurchaseLine::class);
     }
 
+    /**
+     * @return HasMany<SaleLine, $this>
+     */
     public function saleLines(): HasMany
     {
         return $this->hasMany(SaleLine::class);
     }
 
+    /**
+     * @return HasMany<StockMovement, $this>
+     */
     public function stockMovements(): HasMany
     {
         return $this->hasMany(StockMovement::class);

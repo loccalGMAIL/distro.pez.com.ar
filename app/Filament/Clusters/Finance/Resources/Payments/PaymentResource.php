@@ -61,7 +61,11 @@ class PaymentResource extends Resource
 
     public static function getGlobalSearchResultTitle(Model $record): string|Htmlable
     {
-        return ($record->party?->razon_social ?? 'Pago').' — $'.number_format((float) $record->monto, 2, ',', '.');
+        if (! $record instanceof Payment) {
+            return 'Pago';
+        }
+
+        return ($record->partyRazonSocial() ?? 'Pago').' — $'.number_format((float) $record->monto, 2, ',', '.');
     }
 
     public static function getGlobalSearchEloquentQuery(): Builder

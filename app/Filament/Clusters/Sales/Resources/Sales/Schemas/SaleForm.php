@@ -141,7 +141,7 @@ class SaleForm
                 ->schema([
                     TextEntry::make('barcode')
                         ->hiddenLabel()
-                        ->state(fn (Get $get) => Product::find($get('product_id'))?->barcode ?? '—')
+                        ->state(fn (Get $get): string => Product::query()->whereKey($get('product_id'))->first()->barcode ?? '—')
                         ->wrap(false)
                         ->extraAttributes(['style' => 'font-size: 0.75rem;']),
                     Select::make('product_id')
@@ -157,7 +157,7 @@ class SaleForm
                             ->limit(50)
                             ->pluck('nombre', 'id')
                             ->all())
-                        ->getOptionLabelUsing(fn ($value): ?string => Product::find($value)?->nombre)
+                        ->getOptionLabelUsing(fn (mixed $value): ?string => Product::query()->whereKey($value)->first()?->nombre)
                         ->placeholder('Nombre o código')
                         ->required()
                         ->live()
@@ -437,15 +437,27 @@ class SaleForm
     }
 
     /**
+     * Las filas del repeater tal como vienen del estado del formulario,
+     * descartando cualquier cosa que no sea una fila.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    private static function lineRows(mixed $state): array
+    {
+        return is_array($state)
+            ? array_values(array_filter($state, is_array(...)))
+            : [];
+    }
+
+    /**
      * Suma el subtotal de todas las líneas y recalcula subtotal/total del
      * resumen (el descuento del resumen es manual, no se toca acá). Recibe
      * $get/$set ya resueltos a nivel raíz (o closures que lo simulan).
      */
     private static function recalculateSummaryFromRoot(Get|Closure $get, Set|Closure $set): void
     {
-        $lines = $get('lines') ?? [];
-
-        $subtotal = collect($lines)->sum(fn (array $line): float => (float) ($line['subtotal'] ?? 0));
+        $subtotal = collect(self::lineRows($get('lines')))
+            ->sum(fn (array $line): float => (float) ($line['subtotal'] ?? 0));
 
         $set('subtotal', number_format($subtotal, 2, '.', ''));
 
