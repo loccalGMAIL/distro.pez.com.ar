@@ -17,14 +17,17 @@ $resources = [
     'sales/sales',
     'finance/payments',
     'purchases/stock-movements',
+    'settings/users',
+    'settings/activity-logs',
 ];
 
 // Ventas y Compras no tienen página /create propia (se crean por modal desde
-// el listado), así que se excluyen del chequeo genérico de "create page loads".
-$createableResources = array_values(array_diff($resources, ['sales/sales', 'purchases/purchases']));
+// el listado); ActivityLogs es de solo lectura (sin create page). Se
+// excluyen del chequeo genérico de "create page loads".
+$createableResources = array_values(array_diff($resources, ['sales/sales', 'purchases/purchases', 'settings/activity-logs']));
 
 test('each filament resource index page loads for an admin', function (string $resource) {
-    $admin = User::factory()->create(['role' => 'admin', 'activo' => true]);
+    $admin = User::factory()->admin()->create(['activo' => true]);
 
     $this->actingAs($admin)
         ->get("/dashboard/{$resource}")
@@ -32,7 +35,7 @@ test('each filament resource index page loads for an admin', function (string $r
 })->with($resources);
 
 test('each filament resource create page loads for an admin', function (string $resource) {
-    $admin = User::factory()->create(['role' => 'admin', 'activo' => true]);
+    $admin = User::factory()->admin()->create(['activo' => true]);
 
     $this->actingAs($admin)
         ->get("/dashboard/{$resource}/create")
@@ -40,7 +43,7 @@ test('each filament resource create page loads for an admin', function (string $
 })->with($createableResources);
 
 test('purchase edit page renders for a draft purchase', function () {
-    $admin = User::factory()->create(['role' => 'admin', 'activo' => true]);
+    $admin = User::factory()->admin()->create(['activo' => true]);
     $purchase = Purchase::factory()->has(PurchaseLine::factory()->count(2), 'lines')->create(['status' => 'borrador']);
 
     $this->actingAs($admin)
@@ -49,7 +52,7 @@ test('purchase edit page renders for a draft purchase', function () {
 });
 
 test('purchase edit page redirects away for a confirmed purchase', function () {
-    $admin = User::factory()->create(['role' => 'admin', 'activo' => true]);
+    $admin = User::factory()->admin()->create(['activo' => true]);
     $purchase = Purchase::factory()->has(PurchaseLine::factory()->count(2), 'lines')->create(['status' => 'confirmada']);
 
     $this->actingAs($admin)
@@ -58,7 +61,7 @@ test('purchase edit page redirects away for a confirmed purchase', function () {
 });
 
 test('payment edit page renders the allocations relation manager', function () {
-    $admin = User::factory()->create(['role' => 'admin', 'activo' => true]);
+    $admin = User::factory()->admin()->create(['activo' => true]);
     $payment = Payment::factory()->has(PaymentAllocation::factory()->count(2), 'allocations')->create();
 
     $this->actingAs($admin)

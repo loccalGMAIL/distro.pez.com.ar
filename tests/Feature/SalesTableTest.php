@@ -7,7 +7,7 @@ use App\Models\User;
 use Livewire\Livewire;
 
 beforeEach(function () {
-    $this->actingAs(User::factory()->create(['role' => 'admin', 'activo' => true]));
+    $this->actingAs(User::factory()->admin()->create(['activo' => true]));
 });
 
 test('the sales table can be filtered by customer', function () {

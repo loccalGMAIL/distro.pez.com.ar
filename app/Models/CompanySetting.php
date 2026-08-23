@@ -5,11 +5,13 @@ namespace App\Models;
 use Database\Factories\CompanySettingFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Spatie\Activitylog\LogOptions;
+use Spatie\Activitylog\Traits\LogsActivity;
 
 class CompanySetting extends Model
 {
     /** @use HasFactory<CompanySettingFactory> */
-    use HasFactory;
+    use HasFactory, LogsActivity;
 
     protected $fillable = [
         'razon_social',
@@ -21,6 +23,11 @@ class CompanySetting extends Model
         'punto_venta',
         'logo_path',
     ];
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()->logAll()->logOnlyDirty()->dontSubmitEmptyLogs();
+    }
 
     /**
      * @return array<string, string>

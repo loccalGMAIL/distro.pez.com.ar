@@ -8,6 +8,29 @@ y este proyecto sigue [Semantic Versioning](https://semver.org/lang/es/) (ver
 
 ## [Unreleased]
 
+## [0.5.3] - 2026-08-22
+
+### Added
+
+- Nuevo sector **Usuarios** en Configuración: alta y edición de usuarios
+  (nombre, email, contraseña, activo) con asignación de uno o más roles.
+- Nuevo sector **Roles** en Configuración (aportado por `filament-shield`):
+  matriz de permisos editable por rol, con una fila por cada resource,
+  página y widget del panel.
+- Nuevo sector **Registro de actividades** en Configuración: auditoría de
+  alta/edición/baja de los modelos de negocio (Productos, Compras, Ventas,
+  Clientes, Proveedores, Pagos, Gastos, Movimientos de stock, Usuarios,
+  etc.), con vista de detalle mostrando qué cambió en cada evento.
+
+### Changed
+
+- El campo fijo `users.role` (enum `admin/vendedor/deposito/chofer` sin
+  ninguna autorización real detrás) se reemplazó por roles y permisos de
+  verdad vía `spatie/laravel-permission` + `filament-shield`. Los roles
+  legados conservan el mismo acceso que ya tenían (antes no existía ninguna
+  Policy en la app) y ahora se pueden restringir por resource desde
+  Configuración → Roles.
+
 ## [0.5.2] - 2026-08-22
 
 ### Added

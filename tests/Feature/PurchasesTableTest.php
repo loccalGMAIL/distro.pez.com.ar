@@ -7,7 +7,7 @@ use App\Models\User;
 use Livewire\Livewire;
 
 beforeEach(function () {
-    $this->actingAs(User::factory()->create(['activo' => true]));
+    $this->actingAs(User::factory()->admin()->create(['activo' => true]));
 });
 
 test('the purchases table can be filtered by supplier', function () {
