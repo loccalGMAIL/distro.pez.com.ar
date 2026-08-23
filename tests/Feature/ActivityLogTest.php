@@ -2,6 +2,7 @@
 
 use App\Filament\Clusters\Settings\Resources\ActivityLogs\Pages\ListActivityLogs;
 use App\Models\Product;
+use App\Models\SaleLine;
 use App\Models\User;
 use Livewire\Livewire;
 use Spatie\Activitylog\Models\Activity;
@@ -29,6 +30,15 @@ test('updating a product records only the dirty attributes', function () {
 
     expect($activity)->not->toBeNull();
     expect($activity->properties->get('attributes'))->toHaveKey('nombre');
+});
+
+test('sale lines are audited too', function () {
+    $line = SaleLine::factory()->create();
+
+    $activity = Activity::query()->forSubject($line)->latest('id')->first();
+
+    expect($activity)->not->toBeNull()
+        ->and($activity->event)->toBe('created');
 });
 
 test('the activity log page lists recorded activity', function () {
