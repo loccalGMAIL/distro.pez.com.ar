@@ -19,6 +19,8 @@ class SaleResource extends Resource
 {
     protected static ?string $model = Sale::class;
 
+    protected static ?string $recordTitleAttribute = 'numero';
+
     protected static ?string $modelLabel = 'Venta';
 
     protected static ?string $pluralModelLabel = 'Ventas';
@@ -44,6 +46,14 @@ class SaleResource extends Resource
         return [
             //
         ];
+    }
+
+    /**
+     * @return array<string>
+     */
+    public static function getGloballySearchableAttributes(): array
+    {
+        return ['numero', 'customer.razon_social'];
     }
 
     public static function getPages(): array

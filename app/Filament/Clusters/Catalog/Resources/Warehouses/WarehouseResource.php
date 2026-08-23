@@ -19,6 +19,8 @@ class WarehouseResource extends Resource
 {
     protected static ?string $model = Warehouse::class;
 
+    protected static ?string $recordTitleAttribute = 'nombre';
+
     protected static ?string $modelLabel = 'Depósito';
 
     protected static ?string $pluralModelLabel = 'Depósitos';
@@ -44,6 +46,14 @@ class WarehouseResource extends Resource
         return [
             //
         ];
+    }
+
+    /**
+     * @return array<string>
+     */
+    public static function getGloballySearchableAttributes(): array
+    {
+        return ['nombre'];
     }
 
     public static function getPages(): array

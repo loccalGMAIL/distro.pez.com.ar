@@ -21,6 +21,8 @@ class ProductResource extends Resource
 {
     protected static ?string $model = Product::class;
 
+    protected static ?string $recordTitleAttribute = 'nombre';
+
     protected static ?string $modelLabel = 'Producto';
 
     protected static ?string $pluralModelLabel = 'Productos';
@@ -46,6 +48,14 @@ class ProductResource extends Resource
         return [
             //
         ];
+    }
+
+    /**
+     * @return array<string>
+     */
+    public static function getGloballySearchableAttributes(): array
+    {
+        return ['nombre', 'sku', 'barcode'];
     }
 
     public static function getPages(): array

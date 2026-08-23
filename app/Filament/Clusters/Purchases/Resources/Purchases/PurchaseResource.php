@@ -20,6 +20,8 @@ class PurchaseResource extends Resource
 {
     protected static ?string $model = Purchase::class;
 
+    protected static ?string $recordTitleAttribute = 'numero';
+
     protected static ?string $modelLabel = 'Compra';
 
     protected static ?string $pluralModelLabel = 'Compras';
@@ -45,6 +47,14 @@ class PurchaseResource extends Resource
         return [
             //
         ];
+    }
+
+    /**
+     * @return array<string>
+     */
+    public static function getGloballySearchableAttributes(): array
+    {
+        return ['numero', 'supplier.razon_social'];
     }
 
     public static function getPages(): array

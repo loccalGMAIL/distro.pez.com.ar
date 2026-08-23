@@ -21,6 +21,8 @@ class ExpenseResource extends Resource
 {
     protected static ?string $model = Expense::class;
 
+    protected static ?string $recordTitleAttribute = 'descripcion';
+
     protected static ?string $modelLabel = 'Gasto';
 
     protected static ?string $pluralModelLabel = 'Gastos';
@@ -46,6 +48,14 @@ class ExpenseResource extends Resource
         return [
             //
         ];
+    }
+
+    /**
+     * @return array<string>
+     */
+    public static function getGloballySearchableAttributes(): array
+    {
+        return ['descripcion', 'comprobante_numero', 'supplier.razon_social'];
     }
 
     public static function getPages(): array

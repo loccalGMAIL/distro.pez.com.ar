@@ -21,6 +21,8 @@ class CustomerResource extends Resource
 {
     protected static ?string $model = Customer::class;
 
+    protected static ?string $recordTitleAttribute = 'razon_social';
+
     protected static ?string $modelLabel = 'Cliente';
 
     protected static ?string $pluralModelLabel = 'Clientes';
@@ -46,6 +48,14 @@ class CustomerResource extends Resource
         return [
             //
         ];
+    }
+
+    /**
+     * @return array<string>
+     */
+    public static function getGloballySearchableAttributes(): array
+    {
+        return ['razon_social', 'codigo', 'cuit', 'telefono', 'email', 'domicilio', 'localidad'];
     }
 
     public static function getPages(): array

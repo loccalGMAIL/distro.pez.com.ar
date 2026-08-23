@@ -21,6 +21,8 @@ class SupplierResource extends Resource
 {
     protected static ?string $model = Supplier::class;
 
+    protected static ?string $recordTitleAttribute = 'razon_social';
+
     protected static ?string $modelLabel = 'Proveedor';
 
     protected static ?string $pluralModelLabel = 'Proveedores';
@@ -46,6 +48,14 @@ class SupplierResource extends Resource
         return [
             //
         ];
+    }
+
+    /**
+     * @return array<string>
+     */
+    public static function getGloballySearchableAttributes(): array
+    {
+        return ['razon_social', 'codigo', 'cuit', 'telefono', 'email', 'domicilio'];
     }
 
     public static function getPages(): array
