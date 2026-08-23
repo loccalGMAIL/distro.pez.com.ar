@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Database\Factories\ExpenseFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -11,6 +12,7 @@ use Spatie\Activitylog\Traits\LogsActivity;
 
 class Expense extends Model
 {
+    /** @use HasFactory<ExpenseFactory> */
     use HasFactory, LogsActivity, SoftDeletes;
 
     protected $fillable = [
@@ -38,16 +40,25 @@ class Expense extends Model
         return LogOptions::defaults()->logAll()->logOnlyDirty()->dontSubmitEmptyLogs();
     }
 
+    /**
+     * @return BelongsTo<ExpenseCategory, $this>
+     */
     public function category(): BelongsTo
     {
         return $this->belongsTo(ExpenseCategory::class, 'expense_category_id');
     }
 
+    /**
+     * @return BelongsTo<Supplier, $this>
+     */
     public function supplier(): BelongsTo
     {
         return $this->belongsTo(Supplier::class);
     }
 
+    /**
+     * @return BelongsTo<User, $this>
+     */
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);

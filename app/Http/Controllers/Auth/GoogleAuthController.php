@@ -10,10 +10,11 @@ use Filament\Notifications\Notification;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
 use Laravel\Socialite\Facades\Socialite;
+use Symfony\Component\HttpFoundation\RedirectResponse as SymfonyRedirectResponse;
 
 class GoogleAuthController extends Controller
 {
-    public function redirect(): RedirectResponse
+    public function redirect(): SymfonyRedirectResponse
     {
         return Socialite::driver('google')->redirect();
     }
@@ -42,7 +43,7 @@ class GoogleAuthController extends Controller
                 ->body('Tu cuenta de Google no está autorizada para acceder. Contactá a un administrador.')
                 ->send();
 
-            return redirect(Filament::getPanel('dashboard')->getLoginUrl());
+            return redirect()->to(Filament::getPanel('dashboard')->getLoginUrl());
         }
 
         $user->fill([
@@ -52,6 +53,6 @@ class GoogleAuthController extends Controller
 
         Auth::guard('web')->login($user);
 
-        return redirect(Filament::getPanel('dashboard')->getUrl());
+        return redirect()->to(Filament::getPanel('dashboard')->getUrl());
     }
 }

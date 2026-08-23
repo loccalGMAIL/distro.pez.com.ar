@@ -14,6 +14,9 @@ use Filament\Schemas\Components\Actions;
 use Filament\Schemas\Components\Form;
 use Filament\Schemas\Schema;
 
+/**
+ * @property-read Schema $form Resuelto por el __get de Filament (ResolvesDynamicLivewireProperties).
+ */
 class General extends Page
 {
     protected string $view = 'filament.clusters.settings.pages.general';

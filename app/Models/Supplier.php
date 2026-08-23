@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Database\Factories\SupplierFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -12,6 +13,7 @@ use Spatie\Activitylog\Traits\LogsActivity;
 
 class Supplier extends Model
 {
+    /** @use HasFactory<SupplierFactory> */
     use HasFactory, LogsActivity, SoftDeletes;
 
     protected $fillable = [
@@ -41,16 +43,25 @@ class Supplier extends Model
         return LogOptions::defaults()->logAll()->logOnlyDirty()->dontSubmitEmptyLogs();
     }
 
+    /**
+     * @return HasMany<Purchase, $this>
+     */
     public function purchases(): HasMany
     {
         return $this->hasMany(Purchase::class);
     }
 
+    /**
+     * @return HasMany<Expense, $this>
+     */
     public function expenses(): HasMany
     {
         return $this->hasMany(Expense::class);
     }
 
+    /**
+     * @return MorphMany<Payment, $this>
+     */
     public function payments(): MorphMany
     {
         return $this->morphMany(Payment::class, 'party');

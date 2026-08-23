@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Barryvdh\DomPDF\Facade\Pdf;
 use Barryvdh\DomPDF\PDF as PdfDocument;
+use Database\Factories\SaleFactory;
 use Filament\Actions\Action;
 use Filament\Notifications\Notification;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -18,6 +19,7 @@ use Spatie\Activitylog\Traits\LogsActivity;
 
 class Sale extends Model
 {
+    /** @use HasFactory<SaleFactory> */
     use HasFactory, LogsActivity, SoftDeletes;
 
     protected $fillable = [
@@ -76,36 +78,57 @@ class Sale extends Model
         });
     }
 
+    /**
+     * @return BelongsTo<Customer, $this>
+     */
     public function customer(): BelongsTo
     {
         return $this->belongsTo(Customer::class);
     }
 
+    /**
+     * @return BelongsTo<PriceList, $this>
+     */
     public function priceList(): BelongsTo
     {
         return $this->belongsTo(PriceList::class);
     }
 
+    /**
+     * @return BelongsTo<Warehouse, $this>
+     */
     public function warehouse(): BelongsTo
     {
         return $this->belongsTo(Warehouse::class);
     }
 
+    /**
+     * @return BelongsTo<User, $this>
+     */
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }
 
+    /**
+     * @return HasMany<SaleLine, $this>
+     */
     public function lines(): HasMany
     {
         return $this->hasMany(SaleLine::class);
     }
 
+    /**
+     * @return MorphMany<PaymentAllocation, $this>
+     */
     public function paymentAllocations(): MorphMany
     {
         return $this->morphMany(PaymentAllocation::class, 'allocatable');
     }
 
+    /**
+     * @return MorphMany<StockMovement, $this>
+     */
     public function stockMovements(): MorphMany
     {
         return $this->morphMany(StockMovement::class, 'source');

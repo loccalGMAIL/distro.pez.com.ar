@@ -8,6 +8,35 @@ y este proyecto sigue [Semantic Versioning](https://semver.org/lang/es/) (ver
 
 ## [Unreleased]
 
+## [0.6.1] - 2026-08-23
+
+### Changed
+
+- `composer types:check` (PHPStan nivel 7) pasa en verde: se resolvieron los
+  152 errores que el proyecto arrastraba y que venían haciendo fallar el CI
+  en **todos** los PRs desde el primero. El chequeo corre antes de los tests,
+  así que hasta ahora los tests del CI ni siquiera llegaban a ejecutarse.
+- Los 18 modelos declaran los genéricos de sus relaciones y de `HasFactory`
+  (`@return BelongsTo<Customer, $this>`, `@use HasFactory<SaleFactory>`, …).
+  Es documentación de tipos: no cambia el comportamiento, pero hace que el
+  análisis estático entienda `$sale->customer->razon_social` y compañía.
+- `InvoiceExtractor` declara la forma exacta de la extracción
+  (`@phpstan-type`) y devuelve el catálogo como array plano en vez de
+  `Collection`, así el tipo sobrevive al pasar de un método a otro.
+- `ShieldSeeder` quedó reducido a lo que esta app usa (roles y permisos): el
+  archivo generado por `shield:generate --seeder` traía además ramas de
+  tenants, usuarios y pivot que acá nunca se ejecutan. El JSON de permisos es
+  el mismo, y el resultado de `db:seed` es idéntico (164 permisos; admin 164,
+  vendedor/deposito/chofer 128 cada uno).
+
+### Fixed
+
+- Escaneo de factura: si el archivo subido no se puede guardar en disco, ahora
+  avisa con una notificación en vez de romper con un error de tipo al intentar
+  prepararlo.
+- `InvoiceExtractor` falla con un mensaje claro si no puede leer el archivo de
+  la factura, en vez de mandar una imagen vacía a la API.
+
 ## [0.6.0] - 2026-08-23
 
 ### Added

@@ -32,7 +32,7 @@ class ProductoMasVendidoWidget extends Widget
             ->first();
 
         return [
-            'nombre' => $topLine?->product?->nombre ?? 'Sin ventas este mes',
+            'nombre' => $topLine?->product->nombre ?? 'Sin ventas este mes',
         ];
     }
 }

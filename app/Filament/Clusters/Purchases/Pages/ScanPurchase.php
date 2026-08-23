@@ -42,6 +42,9 @@ use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 use RuntimeException;
 use Throwable;
 
+/**
+ * @property-read Schema $form Resuelto por el __get de Filament (ResolvesDynamicLivewireProperties).
+ */
 class ScanPurchase extends Page
 {
     protected string $view = 'filament.clusters.purchases.pages.scan-purchase';
@@ -119,6 +122,16 @@ class ScanPurchase extends Page
                     }
 
                     $path = $state->store('purchases', 'local');
+
+                    if (! is_string($path)) {
+                        Notification::make()
+                            ->danger()
+                            ->title('No pudimos guardar el archivo de la factura')
+                            ->body('Probá de nuevo o subí otro archivo.')
+                            ->send();
+
+                        return;
+                    }
 
                     app(InvoiceImagePreparer::class)->prepare(
                         Storage::disk('local')->path($path)
@@ -216,7 +229,7 @@ class ScanPurchase extends Page
                             ->limit(50)
                             ->pluck('nombre', 'id')
                             ->all())
-                        ->getOptionLabelUsing(fn ($value): ?string => Product::find($value)?->nombre)
+                        ->getOptionLabelUsing(fn (mixed $value): ?string => Product::query()->whereKey($value)->first()?->nombre)
                         ->placeholder('Sin match — elegí uno o borrá la línea')
                         ->createOptionForm(ProductForm::quickCreateFields())
                         ->createOptionUsing(fn (array $data): int => Product::create([
@@ -399,6 +412,19 @@ class ScanPurchase extends Page
     }
 
     /**
+     * Las filas del repeater tal como vienen del estado del formulario,
+     * descartando cualquier cosa que no sea una fila.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    private function lineRows(mixed $state): array
+    {
+        return is_array($state)
+            ? array_values(array_filter($state, is_array(...)))
+            : [];
+    }
+
+    /**
      * Recalcula subtotal (suma de líneas) y total (subtotal − descuento +
      * iva) para el resumen del paso "Revisar". El total final "real" se
      * vuelve a calcular en confirmar() a partir de lo que haya en la base en
@@ -407,9 +433,8 @@ class ScanPurchase extends Page
      */
     private function recalculateTotals(Get|Closure $get, Set|Closure $set): void
     {
-        $lineas = $get('lineas') ?? [];
-
-        $subtotal = collect($lineas)->sum(fn (array $linea): float => (float) ($linea['subtotal'] ?? 0));
+        $subtotal = collect($this->lineRows($get('lineas')))
+            ->sum(fn (array $linea): float => (float) ($linea['subtotal'] ?? 0));
 
         $set('subtotal', round($subtotal, 2));
 
@@ -428,7 +453,7 @@ class ScanPurchase extends Page
     {
         $data = $this->form->getState();
 
-        $lineas = collect($data['lineas'] ?? [])
+        $lineas = collect($this->lineRows($data['lineas'] ?? null))
             ->filter(fn (array $linea): bool => filled($linea['product_id']) && (float) ($linea['cantidad'] ?? 0) > 0)
             ->values();
 

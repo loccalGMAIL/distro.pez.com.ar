@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Database\Factories\PriceListFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -11,6 +12,7 @@ use Spatie\Activitylog\Traits\LogsActivity;
 
 class PriceList extends Model
 {
+    /** @use HasFactory<PriceListFactory> */
     use HasFactory, LogsActivity;
 
     protected $fillable = [
@@ -45,16 +47,25 @@ class PriceList extends Model
         });
     }
 
+    /**
+     * @return HasMany<Customer, $this>
+     */
     public function customers(): HasMany
     {
         return $this->hasMany(Customer::class);
     }
 
+    /**
+     * @return BelongsTo<PriceList, $this>
+     */
     public function basedOn(): BelongsTo
     {
         return $this->belongsTo(PriceList::class, 'based_on_price_list_id');
     }
 
+    /**
+     * @return HasMany<PriceList, $this>
+     */
     public function dependents(): HasMany
     {
         return $this->hasMany(PriceList::class, 'based_on_price_list_id');
@@ -64,6 +75,8 @@ class PriceList extends Model
      * Cuánto multiplica esta lista al costo de cualquier producto, resolviendo
      * la cadena de "basada en" (independiente del producto, así se puede
      * calcular una sola vez por lista en vez de una vez por producto×lista).
+     *
+     * @param  array<int, int>  $visited  IDs ya recorridos de la cadena.
      */
     public function multiplicador(array $visited = []): float
     {
