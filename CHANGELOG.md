@@ -8,6 +8,32 @@ y este proyecto sigue [Semantic Versioning](https://semver.org/lang/es/) (ver
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-08-23
+
+### Added
+
+- **Los ingresos al sistema quedan registrados**: cada inicio de sesión,
+  cierre de sesión, intento fallido, bloqueo por demasiados intentos y
+  restablecimiento de contraseña se guarda en el Registro de actividades
+  (Configuración → Actividad), con usuario, fecha, IP y navegador. Aplica
+  tanto al login con email/contraseña como al de Google, incluidos los
+  intentos rechazados (email desconocido o usuario inactivo), que anotan el
+  motivo del rechazo. Las contraseñas nunca se guardan en el registro.
+- Auditoría de los modelos que todavía no la tenían: líneas de venta,
+  líneas de compra, imputaciones de pago, categorías de productos,
+  categorías de gastos y vínculos proveedor-producto. Con esto, cualquier
+  alta, edición o baja de datos del sistema queda registrada.
+- Filtros en el Registro de actividades: por tipo (cambios de datos /
+  ingresos al sistema), evento, usuario, modelo y rango de fechas. La
+  descripción ahora es buscable y la IP se puede mostrar como columna
+  opcional.
+
+### Changed
+
+- Los eventos del Registro de actividades se muestran en castellano
+  ("Creación", "Edición", "Ingreso", "Ingreso fallido", …) en vez del nombre
+  interno en inglés, con colores por tipo de evento.
+
 ## [0.5.5] - 2026-08-23
 
 ### Added

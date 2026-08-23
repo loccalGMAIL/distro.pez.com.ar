@@ -2,11 +2,13 @@
 
 namespace App\Providers;
 
+use App\Listeners\LogAuthenticationActivity;
 use App\Policies\ActivityPolicy;
 use App\Policies\RolePolicy;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
@@ -32,6 +34,8 @@ class AppServiceProvider extends ServiceProvider
 
         Gate::policy(Activity::class, ActivityPolicy::class);
         Gate::policy(Role::class, RolePolicy::class);
+
+        Event::subscribe(LogAuthenticationActivity::class);
     }
 
     /**
