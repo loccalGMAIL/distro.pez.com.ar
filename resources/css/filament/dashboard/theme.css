@@ -2,3 +2,11 @@
 
 @source '../../../../app/Filament/**/*';
 @source '../../../../resources/views/filament/**/*';
+
+/* El botón para volver al dashboard (hook TOPBAR_START) se renderiza antes
+   que el botón de menú hamburguesa; lo reordenamos visualmente para que
+   quede después, sin depender de un hook a mitad del topbar de Filament. */
+.fi-topbar-open-sidebar-btn,
+.fi-topbar-close-sidebar-btn {
+    @apply -order-1;
+}

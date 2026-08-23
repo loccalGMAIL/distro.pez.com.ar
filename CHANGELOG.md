@@ -8,6 +8,35 @@ y este proyecto sigue [Semantic Versioning](https://semver.org/lang/es/) (ver
 
 ## [Unreleased]
 
+## [0.5.5] - 2026-08-23
+
+### Added
+
+- Nuevas cards de acceso rápido en el dashboard, "Nuevo cliente" y "Nuevo
+  proveedor", junto a las ya existentes "Nueva compra"/"Nueva venta" (ahora
+  las 4 en una sola fila en desktop).
+- Nuevos widgets de análisis en el dashboard: **Ventas del mes** (total $ de
+  ventas confirmadas del mes actual), **Producto más vendido** (por
+  cantidad, ventas confirmadas del mes actual) y **Total de productos
+  activos**.
+- Botón para volver al dashboard en la barra superior, visible solo en
+  mobile (al lado del menú hamburguesa), ya que en ese tamaño de pantalla
+  el logo/nombre de la empresa (que también linkea al dashboard) queda
+  oculto.
+
+### Changed
+
+- En mobile, las 4 cards de acceso rápido del dashboard se acomodan de a 2
+  por fila; las cards de análisis siguen ocupando el ancho completo.
+- Las cards de acceso rápido del dashboard ya no muestran una aclaración
+  debajo del título (ej. "Cargar una compra nueva"), solo el título.
+- La card "Producto más vendido" ocupa 2 columnas de ancho para no cortar
+  nombres de producto largos.
+- Los clientes y proveedores nuevos quedan **activos** por defecto. El
+  campo `activo` de esos formularios no tenía un valor por defecto (a
+  diferencia del de Productos, que sí), así que el toggle arrancaba
+  apagado y había que activarlo a mano después de cada alta.
+
 ## [0.5.4] - 2026-08-23
 
 ### Fixed
