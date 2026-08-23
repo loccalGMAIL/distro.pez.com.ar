@@ -13,13 +13,8 @@
             />
         </span>
 
-        <span class="flex flex-1 flex-col">
-            <span class="text-base font-semibold text-gray-950 dark:text-white">
-                Nueva venta
-            </span>
-            <span class="text-sm text-gray-500 dark:text-gray-400">
-                Cargar una venta nueva
-            </span>
+        <span class="flex-1 text-base font-semibold text-gray-950 dark:text-white">
+            Nueva venta
         </span>
 
         <x-filament::icon

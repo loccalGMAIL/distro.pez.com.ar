@@ -51,7 +51,8 @@ class SupplierForm
                 Textarea::make('observaciones')
                     ->columnSpanFull(),
                 Toggle::make('activo')
-                    ->required(),
+                    ->required()
+                    ->default(true),
             ]);
     }
 
