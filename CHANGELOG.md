@@ -8,6 +8,18 @@ y este proyecto sigue [Semantic Versioning](https://semver.org/lang/es/) (ver
 
 ## [Unreleased]
 
+## [0.7.1] - 2026-08-26
+
+### Changed
+
+- El widget "Nuevo proveedor" del dashboard se reemplaza por "Productos",
+  que enlaza al listado de productos.
+- La columna SKU de la tabla de Productos ahora es ocultable.
+- Los precios de la tabla de Productos (Costo y cada lista de precios) se
+  muestran con denominación "$" en vez de "ARS".
+- Las columnas de listas de precios en la tabla de Productos se ordenan por
+  Minorista, Mayorista y VIP, en vez de alfabéticamente.
+
 ## [0.7.0] - 2026-08-26
 
 ### Added
