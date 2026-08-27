@@ -131,40 +131,28 @@ class SaleForm
                 ->afterStateUpdated(fn (Get $get, Set $set) => self::recalculateSummaryFromRoot($get, $set))
                 ->extraAttributes(['style' => 'font-size: 0.75rem;'])
                 ->table([
-                    TableColumn::make('Código')->width('130px'),
                     TableColumn::make('Producto'),
-                    TableColumn::make('Cantidad')->width('70px'),
-                    TableColumn::make('Precio')->width('110px')->alignment(Alignment::End),
                     TableColumn::make('Subtotal')->width('110px')->alignment(Alignment::End),
                 ])
                 ->compact()
                 ->schema([
-                    TextEntry::make('barcode')
-                        ->hiddenLabel()
-                        ->state(fn (Get $get): string => Product::query()->whereKey($get('product_id'))->first()->barcode ?? '—')
-                        ->wrap(false)
-                        ->extraAttributes(['style' => 'font-size: 0.75rem;']),
                     Hidden::make('product_id')
                         ->required(),
                     TextEntry::make('producto_nombre')
                         ->hiddenLabel()
-                        ->state(fn (Get $get): string => Product::query()->whereKey($get('product_id'))->first()->nombre ?? '—')
+                        ->state(function (Get $get): string {
+                            $nombre = Product::query()->whereKey($get('product_id'))->first()->nombre ?? '—';
+                            $cantidad = (float) ($get('cantidad') ?? 0);
+                            $cantidadDisplay = number_format($cantidad, $cantidad == floor($cantidad) ? 0 : 2, ',', '.');
+
+                            return "{$nombre} ×{$cantidadDisplay}";
+                        })
                         ->extraAttributes(['style' => 'font-size: 0.75rem;']),
                     Hidden::make('cantidad')
                         ->required()
                         ->default(1),
-                    TextEntry::make('cantidad_display')
-                        ->hiddenLabel()
-                        ->state(fn (Get $get) => $get('cantidad'))
-                        ->extraAttributes(['style' => 'font-size: 0.75rem;']),
                     Hidden::make('precio_unit')
                         ->default(0),
-                    TextEntry::make('precio_unit_display')
-                        ->hiddenLabel()
-                        ->state(fn (Get $get) => (float) ($get('precio_unit') ?? 0))
-                        ->numeric(decimalPlaces: 2, decimalSeparator: ',', thousandsSeparator: '.')
-                        ->prefix('$')
-                        ->extraAttributes(['style' => 'display: block; text-align: right; font-size: 0.75rem;']),
                     Hidden::make('descuento')
                         ->default(0),
                     Hidden::make('subtotal')
