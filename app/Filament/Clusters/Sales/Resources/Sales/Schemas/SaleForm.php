@@ -129,30 +129,69 @@ class SaleForm
                 ->live()
                 ->default([])
                 ->afterStateUpdated(fn (Get $get, Set $set) => self::recalculateSummaryFromRoot($get, $set))
-                ->extraAttributes(['style' => 'font-size: 0.75rem;'])
+                ->extraAttributes([
+                    'style' => 'font-size: 0.75rem;',
+                    // Por debajo del container query `@xl` (36rem), Filament apila
+                    // cada celda visible como bloque con `p-6 gap-6` (ver
+                    // .fi-fo-table-repeater > tbody > tr en repeater.css) — ese
+                    // padding pensado para varias celdas apiladas queda enorme
+                    // ahora que en ese modo solo se ven 2 (Producto/Subtotal, el
+                    // resto se oculta con `hidden @xl:table-cell`). Se lo achica
+                    // solo por debajo de `@xl` para no tocar el modo tabla.
+                    'class' => '@max-xl:[&_tbody_tr]:gap-1 @max-xl:[&_tbody_tr]:p-2',
+                ])
                 ->table([
+                    TableColumn::make('Código'),
                     TableColumn::make('Producto'),
+                    TableColumn::make('Cantidad')->width('70px'),
+                    TableColumn::make('Precio')->width('110px')->alignment(Alignment::End),
                     TableColumn::make('Subtotal')->width('110px')->alignment(Alignment::End),
                 ])
                 ->compact()
                 ->schema([
+                    // El table-repeater de Filament pasa de "apilado en bloque" (una
+                    // fila por celda, sin encabezado) a tabla de verdad recién cuando
+                    // SU PROPIO contenedor (no el viewport) alcanza el container query
+                    // `@xl` (36rem/576px) — ver .fi-fo-table-repeater en
+                    // vendor/filament/forms/resources/css/components/repeater.css. Por
+                    // eso acá se usan variantes `@xl:` (container queries de Tailwind
+                    // v4, sin plugin) en vez de `lg:` (viewport): así el toggle
+                    // Código/Cantidad/Precio queda sincronizado con el mismo breakpoint
+                    // que ya decide el layout de la tabla, sea cual sea el ancho real
+                    // de la ventana.
+                    TextEntry::make('barcode')
+                        ->hiddenLabel()
+                        ->state(fn (Get $get): string => Product::query()->whereKey($get('product_id'))->first()->barcode ?? '—')
+                        ->wrap(false)
+                        ->extraAttributes(['class' => 'hidden @xl:table-cell', 'style' => 'font-size: 0.75rem;']),
                     Hidden::make('product_id')
                         ->required(),
                     TextEntry::make('producto_nombre')
                         ->hiddenLabel()
+                        ->html()
                         ->state(function (Get $get): string {
-                            $nombre = Product::query()->whereKey($get('product_id'))->first()->nombre ?? '—';
+                            $nombre = e(Product::query()->whereKey($get('product_id'))->first()->nombre ?? '—');
                             $cantidad = (float) ($get('cantidad') ?? 0);
-                            $cantidadDisplay = number_format($cantidad, $cantidad == floor($cantidad) ? 0 : 2, ',', '.');
+                            $cantidadDisplay = e(number_format($cantidad, $cantidad == floor($cantidad) ? 0 : 2, ',', '.'));
 
-                            return "{$nombre} ×{$cantidadDisplay}";
+                            return "{$nombre}<span class=\"@xl:hidden\"> ×{$cantidadDisplay}</span>";
                         })
                         ->extraAttributes(['style' => 'font-size: 0.75rem;']),
                     Hidden::make('cantidad')
                         ->required()
                         ->default(1),
+                    TextEntry::make('cantidad_display')
+                        ->hiddenLabel()
+                        ->state(fn (Get $get) => $get('cantidad'))
+                        ->extraAttributes(['class' => 'hidden @xl:table-cell', 'style' => 'font-size: 0.75rem;']),
                     Hidden::make('precio_unit')
                         ->default(0),
+                    TextEntry::make('precio_unit_display')
+                        ->hiddenLabel()
+                        ->state(fn (Get $get) => (float) ($get('precio_unit') ?? 0))
+                        ->numeric(decimalPlaces: 2, decimalSeparator: ',', thousandsSeparator: '.')
+                        ->prefix('$')
+                        ->extraAttributes(['class' => 'hidden @xl:table-cell', 'style' => 'text-align: right; font-size: 0.75rem;']),
                     Hidden::make('descuento')
                         ->default(0),
                     Hidden::make('subtotal')
