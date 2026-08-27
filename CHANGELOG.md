@@ -8,6 +8,32 @@ y este proyecto sigue [Semantic Versioning](https://semver.org/lang/es/) (ver
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-08-26
+
+### Added
+
+- Grid de productos clicables en Crear Venta: tapear una card abre un modal
+  para ingresar la cantidad y agrega (o suma, si el producto ya estaba en el
+  carrito) una línea de venta, sin pasar por el buscador de producto.
+- El buscador global de la navbar muestra, para productos, el precio de la
+  lista de precios predeterminada junto al nombre (ej. "Aceite de Girasol
+  1.5L — $2.430,00").
+
+### Changed
+
+- **Crear venta vuelve a ser una página propia** (antes se abría como modal
+  desde el listado, al no tener página `create` registrada). El widget
+  "Nueva venta" del dashboard, que todavía apuntaba al patrón de modal viejo,
+  ahora enlaza a la página nueva.
+- Fecha, Lista de precios, Depósito, Usuario y Observaciones quedan en un
+  acordeón colapsado por defecto debajo de Cliente (siguen siendo editables)
+  para que la carga rápida de una venta solo pida el cliente a simple vista.
+- La tabla de líneas de venta muestra sus 5 columnas completas (Código,
+  Producto, Cantidad, Precio, Subtotal) en pantallas grandes; en mobile se
+  aplana a una tarjeta compacta con "Producto ×cantidad" + Subtotal.
+- Se sacó el descuento por línea y el escaneo de código de barras de la
+  carga de líneas de Ventas (el escaneo sigue disponible en Compras).
+
 ## [0.6.1] - 2026-08-23
 
 ### Changed

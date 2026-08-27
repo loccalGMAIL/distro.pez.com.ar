@@ -25,12 +25,15 @@ beforeEach(function () {
     $this->actingAs(User::factory()->admin()->create(['activo' => true]));
 });
 
-test('product global search matches by nombre, sku and barcode', function () {
-    $product = Product::factory()->create(['nombre' => 'Tornillo Phillips 3/4', 'sku' => 'SKU-9911', 'barcode' => '7791234567890']);
+test('product global search matches by nombre, sku and barcode and composes a title with the default price list price', function () {
+    PriceList::factory()->create(['predeterminada' => true, 'porcentaje' => 0]);
+    Product::factory()->create(['nombre' => 'Tornillo Phillips 3/4', 'sku' => 'SKU-9911', 'barcode' => '7791234567890', 'costo_ultimo' => 100]);
 
-    expect(ProductResource::getGlobalSearchResults('Phillips')->pluck('title'))->toContain('Tornillo Phillips 3/4');
-    expect(ProductResource::getGlobalSearchResults('SKU-9911')->pluck('title'))->toContain('Tornillo Phillips 3/4');
-    expect(ProductResource::getGlobalSearchResults('7791234567890')->pluck('title'))->toContain('Tornillo Phillips 3/4');
+    $expectedTitle = 'Tornillo Phillips 3/4 — $100,00';
+
+    expect(ProductResource::getGlobalSearchResults('Phillips')->pluck('title'))->toContain($expectedTitle);
+    expect(ProductResource::getGlobalSearchResults('SKU-9911')->pluck('title'))->toContain($expectedTitle);
+    expect(ProductResource::getGlobalSearchResults('7791234567890')->pluck('title'))->toContain($expectedTitle);
 });
 
 test('price list global search matches by nombre', function () {
