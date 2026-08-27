@@ -1,6 +1,6 @@
 <x-filament-widgets::widget>
     <a
-        href="{{ \App\Filament\Clusters\Sales\Resources\Sales\SaleResource::getUrl(parameters: ['action' => 'create']) }}"
+        href="{{ \App\Filament\Clusters\Sales\Resources\Sales\SaleResource::getUrl('create') }}"
         wire:navigate
         class="group relative flex items-center gap-4 overflow-hidden rounded-xl bg-white p-6 shadow-sm ring-1 ring-gray-950/5 transition hover:-translate-y-0.5 hover:shadow-md hover:ring-amber-600/50 dark:bg-gray-900 dark:ring-white/10"
     >

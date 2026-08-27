@@ -2,6 +2,7 @@
 
 namespace App\Filament\Clusters\Sales\Resources\Sales;
 
+use App\Filament\Clusters\Sales\Resources\Sales\Pages\CreateSale;
 use App\Filament\Clusters\Sales\Resources\Sales\Pages\ListSales;
 use App\Filament\Clusters\Sales\Resources\Sales\Schemas\SaleForm;
 use App\Filament\Clusters\Sales\Resources\Sales\Tables\SalesTable;
@@ -60,6 +61,7 @@ class SaleResource extends Resource
     {
         return [
             'index' => ListSales::route('/'),
+            'create' => CreateSale::route('/create'),
         ];
     }
 

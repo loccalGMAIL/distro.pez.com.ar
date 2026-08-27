@@ -18,17 +18,14 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Infolists\Components\TextEntry;
-use Filament\Notifications\Notification;
 use Filament\Schemas\Components\Component;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
+use Filament\Schemas\Components\View;
 use Filament\Schemas\Schema;
 use Filament\Support\Enums\Alignment;
-use Filament\Support\Enums\Width;
-use Filament\Support\Icons\Heroicon;
 use Filament\Support\RawJs;
-use Livewire\Component as Livewire;
 
 class SaleForm
 {
@@ -40,24 +37,6 @@ class SaleForm
                 Section::make()
                     ->columnSpan(3)
                     ->columns(4)
-                    ->extraAttributes([
-                        // Cualquier campo de una sola línea (fecha, cliente, lista,
-                        // el botón del producto, etc.) dispara
-                        // el submit implícito del navegador al presionar Enter dentro
-                        // del <form> del modal, y Livewire lo procesa vía `wire:submit`
-                        // en el propio <form> (por encima de este wrapper), así que
-                        // frenarlo recién en el evento "submit" llega tarde. Lo cortamos
-                        // acá, en el keydown, antes de que el navegador dispare el
-                        // submit implícito. Si en ese momento no hay ninguna línea
-                        // cargada todavía, ese mismo Enter agrega la primera (mismo
-                        // botón "Agregar producto" que usa "descuento" para las
-                        // siguientes líneas).
-                        'x-on:keydown.enter.prevent' => <<<'JS'
-                            if (! $el.querySelector('.fi-fo-table-repeater tbody > tr')) {
-                                $el.querySelector('.fi-fo-table-repeater-add button')?.click()
-                            }
-                            JS,
-                    ])
                     ->schema(self::mainFields())
                     ->belowContent(fn () => view('filament.sale-form.resumen-toggle')),
                 Section::make('Resumen')
@@ -71,7 +50,7 @@ class SaleForm
                         Action::make('crear')
                             ->label('Finalizar')
                             ->color('primary')
-                            ->submit('callMountedAction')
+                            ->submit('create')
                             ->extraAttributes(['class' => 'w-full']),
                     ]),
             ]);
@@ -87,9 +66,6 @@ class SaleForm
             //     ->disabled()
             //     ->dehydrated(false)
             //     ->placeholder('Automático'),
-            DatePicker::make('fecha')
-                ->required()
-                ->default(now()),
             Select::make('customer_id')
                 ->label('Cliente')
                 ->relationship('customer', 'razon_social')
@@ -105,128 +81,6 @@ class SaleForm
                 })
                 ->createOptionForm(CustomerForm::quickCreateFields())
                 ->createOptionModalHeading('Nuevo cliente')
-                ->columnSpan(2),
-            Select::make('price_list_id')
-                ->label('Lista')
-                ->relationship('priceList', 'nombre')
-                ->searchable()
-                ->preload()
-                ->default(fn () => PriceList::where('predeterminada', true)->value('id')),
-
-            Repeater::make('lines')
-                ->label('Líneas')
-                ->relationship()
-                ->live()
-                ->default([])
-                ->afterStateUpdated(fn (Get $get, Set $set) => self::recalculateSummaryFromRoot($get, $set))
-                ->extraAttributes([
-                    'style' => 'font-size: 0.75rem;',
-                    'x-on:sale-line-product-picked.window' => <<<'JS'
-                        setTimeout(() => {
-                            $el.querySelectorAll('tbody > tr')[$event.detail.index]
-                                ?.querySelector('[data-repeater-field=cantidad]')
-                                ?.focus();
-                        }, 300)
-                        JS,
-                ])
-                ->table([
-                    TableColumn::make('Código')->width('130px'),
-                    TableColumn::make('Producto'),
-                    TableColumn::make('Cantidad')->width('70px'),
-                    TableColumn::make('Precio')->width('110px')->alignment(Alignment::End),
-                    TableColumn::make('Descuento')->width('110px')->alignment(Alignment::End),
-                    TableColumn::make('Subtotal')->width('110px')->alignment(Alignment::End),
-                ])
-                ->compact()
-                ->schema([
-                    TextEntry::make('barcode')
-                        ->hiddenLabel()
-                        ->state(fn (Get $get): string => Product::query()->whereKey($get('product_id'))->first()->barcode ?? '—')
-                        ->wrap(false)
-                        ->extraAttributes(['style' => 'font-size: 0.75rem;']),
-                    Select::make('product_id')
-                        ->label('Producto')
-                        ->hiddenLabel()
-                        ->searchable()
-                        ->autofocus()
-                        ->getSearchResultsUsing(fn (string $search): array => Product::query()
-                            ->where('activo', true)
-                            ->where(fn ($query) => $query
-                                ->where('nombre', 'like', "%{$search}%")
-                                ->orWhere('barcode', 'like', "%{$search}%"))
-                            ->limit(50)
-                            ->pluck('nombre', 'id')
-                            ->all())
-                        ->getOptionLabelUsing(fn (mixed $value): ?string => Product::query()->whereKey($value)->first()?->nombre)
-                        ->placeholder('Nombre o código')
-                        ->required()
-                        ->live()
-                        ->afterStateUpdated(function (Set $set, Get $get, ?string $state, Livewire $livewire, int $parentRepeaterItemIndex) {
-                            $product = $state ? Product::find($state) : null;
-
-                            if (! $product) {
-                                return;
-                            }
-
-                            $set('precio_unit', $product->precioParaLista($get('../../price_list_id')));
-                            $set('costo_unit', $product->costo_ultimo);
-                            self::recalculateLine($get, $set);
-
-                            $livewire->dispatch('sale-line-product-picked', index: $parentRepeaterItemIndex);
-                        })
-                        ->suffixAction(self::scanBarcodeAction()),
-                    TextInput::make('cantidad')
-                        ->hiddenLabel()
-                        ->required()
-                        ->numeric()
-                        ->default(1)
-                        ->live()
-                        ->extraInputAttributes([
-                            'data-repeater-field' => 'cantidad',
-                            'style' => 'font-size: 0.75rem;',
-                            'x-on:keydown.enter.prevent.stop' => <<<'JS'
-                                $el.closest('tr').querySelector('[data-repeater-field=descuento]')?.focus()
-                                JS,
-                        ])
-                        ->afterStateUpdated(fn (Get $get, Set $set) => self::recalculateLine($get, $set)),
-                    Hidden::make('precio_unit')
-                        ->default(0),
-                    TextEntry::make('precio_unit_display')
-                        ->hiddenLabel()
-                        ->state(fn (Get $get) => (float) ($get('precio_unit') ?? 0))
-                        ->numeric(decimalPlaces: 2, decimalSeparator: ',', thousandsSeparator: '.')
-                        ->prefix('$')
-                        ->extraAttributes(['style' => 'display: block; text-align: right; font-size: 0.75rem;']),
-                    TextInput::make('descuento')
-                        ->hiddenLabel()
-                        ->required()
-                        ->prefix('$')
-                        ->default(0.0)
-                        ->live()
-                        ->mask(RawJs::make("\$money(\$input, ',')"))
-                        ->dehydrateStateUsing(fn ($state) => self::parseAmount($state))
-                        ->extraInputAttributes([
-                            'data-repeater-field' => 'descuento',
-                            'style' => 'text-align: right; font-size: 0.75rem;',
-                            'x-on:keydown.enter.prevent.stop' => <<<'JS'
-                                $el.closest('.fi-fo-table-repeater').querySelector('.fi-fo-table-repeater-add button')?.click()
-                                JS,
-                        ])
-                        ->afterStateUpdated(fn (Get $get, Set $set) => self::recalculateLine($get, $set)),
-                    Hidden::make('subtotal')
-                        ->default(0),
-                    TextEntry::make('subtotal_display')
-                        ->hiddenLabel()
-                        ->state(fn (Get $get) => (float) ($get('subtotal') ?? 0))
-                        ->numeric(decimalPlaces: 2, decimalSeparator: ',', thousandsSeparator: '.')
-                        ->prefix('$')
-                        ->extraAttributes(['style' => 'display: block; text-align: right; font-size: 0.75rem;']),
-                    Hidden::make('costo_unit')
-                        ->default(0),
-                ])
-                ->addActionLabel('Agregar producto')
-                ->required()
-                ->minItems(1)
                 ->columnSpanFull(),
             Section::make()
                 ->collapsible()
@@ -236,6 +90,15 @@ class SaleForm
                 ->columnSpanFull()
                 ->extraAttributes(self::compactAccordionAttributes())
                 ->schema([
+                    DatePicker::make('fecha')
+                        ->required()
+                        ->default(now()),
+                    Select::make('price_list_id')
+                        ->label('Lista')
+                        ->relationship('priceList', 'nombre')
+                        ->searchable()
+                        ->preload()
+                        ->default(fn () => PriceList::where('predeterminada', true)->value('id')),
                     Select::make('warehouse_id')
                         ->label('Depósito')
                         ->relationship('warehouse', 'nombre')
@@ -252,6 +115,100 @@ class SaleForm
                     Textarea::make('observaciones')
                         ->columnSpanFull(),
                 ]),
+
+            View::make('filament.sale-form.product-cards')
+                ->viewData([
+                    'products' => Product::where('activo', true)->orderBy('nombre')->get(),
+                    'priceListId' => PriceList::where('predeterminada', true)->value('id'),
+                ])
+                ->columnSpanFull(),
+
+            Repeater::make('lines')
+                ->label('Líneas')
+                ->relationship()
+                ->live()
+                ->default([])
+                ->afterStateUpdated(fn (Get $get, Set $set) => self::recalculateSummaryFromRoot($get, $set))
+                ->extraAttributes([
+                    'style' => 'font-size: 0.75rem;',
+                    // Por debajo del container query `@xl` (36rem), Filament apila
+                    // cada celda visible como bloque con `p-6 gap-6` (ver
+                    // .fi-fo-table-repeater > tbody > tr en repeater.css) — ese
+                    // padding pensado para varias celdas apiladas queda enorme
+                    // ahora que en ese modo solo se ven 2 (Producto/Subtotal, el
+                    // resto se oculta con `hidden @xl:table-cell`). Se lo achica
+                    // solo por debajo de `@xl` para no tocar el modo tabla.
+                    'class' => '@max-xl:[&_tbody_tr]:gap-1 @max-xl:[&_tbody_tr]:p-2',
+                ])
+                ->table([
+                    TableColumn::make('Código'),
+                    TableColumn::make('Producto'),
+                    TableColumn::make('Cantidad')->width('70px'),
+                    TableColumn::make('Precio')->width('110px')->alignment(Alignment::End),
+                    TableColumn::make('Subtotal')->width('110px')->alignment(Alignment::End),
+                ])
+                ->compact()
+                ->schema([
+                    // El table-repeater de Filament pasa de "apilado en bloque" (una
+                    // fila por celda, sin encabezado) a tabla de verdad recién cuando
+                    // SU PROPIO contenedor (no el viewport) alcanza el container query
+                    // `@xl` (36rem/576px) — ver .fi-fo-table-repeater en
+                    // vendor/filament/forms/resources/css/components/repeater.css. Por
+                    // eso acá se usan variantes `@xl:` (container queries de Tailwind
+                    // v4, sin plugin) en vez de `lg:` (viewport): así el toggle
+                    // Código/Cantidad/Precio queda sincronizado con el mismo breakpoint
+                    // que ya decide el layout de la tabla, sea cual sea el ancho real
+                    // de la ventana.
+                    TextEntry::make('barcode')
+                        ->hiddenLabel()
+                        ->state(fn (Get $get): string => Product::query()->whereKey($get('product_id'))->first()->barcode ?? '—')
+                        ->wrap(false)
+                        ->extraAttributes(['class' => 'hidden @xl:table-cell', 'style' => 'font-size: 0.75rem;']),
+                    Hidden::make('product_id')
+                        ->required(),
+                    TextEntry::make('producto_nombre')
+                        ->hiddenLabel()
+                        ->html()
+                        ->state(function (Get $get): string {
+                            $nombre = e(Product::query()->whereKey($get('product_id'))->first()->nombre ?? '—');
+                            $cantidad = (float) ($get('cantidad') ?? 0);
+                            $cantidadDisplay = e(number_format($cantidad, $cantidad == floor($cantidad) ? 0 : 2, ',', '.'));
+
+                            return "{$nombre}<span class=\"@xl:hidden\"> ×{$cantidadDisplay}</span>";
+                        })
+                        ->extraAttributes(['style' => 'font-size: 0.75rem;']),
+                    Hidden::make('cantidad')
+                        ->required()
+                        ->default(1),
+                    TextEntry::make('cantidad_display')
+                        ->hiddenLabel()
+                        ->state(fn (Get $get) => $get('cantidad'))
+                        ->extraAttributes(['class' => 'hidden @xl:table-cell', 'style' => 'font-size: 0.75rem;']),
+                    Hidden::make('precio_unit')
+                        ->default(0),
+                    TextEntry::make('precio_unit_display')
+                        ->hiddenLabel()
+                        ->state(fn (Get $get) => (float) ($get('precio_unit') ?? 0))
+                        ->numeric(decimalPlaces: 2, decimalSeparator: ',', thousandsSeparator: '.')
+                        ->prefix('$')
+                        ->extraAttributes(['class' => 'hidden @xl:table-cell', 'style' => 'text-align: right; font-size: 0.75rem;']),
+                    Hidden::make('descuento')
+                        ->default(0),
+                    Hidden::make('subtotal')
+                        ->default(0),
+                    TextEntry::make('subtotal_display')
+                        ->hiddenLabel()
+                        ->state(fn (Get $get) => (float) ($get('subtotal') ?? 0))
+                        ->numeric(decimalPlaces: 2, decimalSeparator: ',', thousandsSeparator: '.')
+                        ->prefix('$')
+                        ->extraAttributes(['style' => 'display: block; text-align: right; font-size: 0.75rem;']),
+                    Hidden::make('costo_unit')
+                        ->default(0),
+                ])
+                ->addable(false)
+                ->required()
+                ->minItems(1)
+                ->columnSpanFull(),
             Hidden::make('status')
                 ->default('confirmada'),
         ];
@@ -328,9 +285,9 @@ class SaleForm
 
     /**
      * Header más chico para los Section sin título usados como acordeón
-     * (Depósito/Usuario/Observaciones y Forma de pago): botón de plegar y
-     * padding reducidos, para que el control ocupe lo mínimo cuando está
-     * colapsado.
+     * (Fecha/Lista/Depósito/Usuario/Observaciones y Forma de pago): botón de
+     * plegar y padding reducidos, para que el control ocupe lo mínimo cuando
+     * está colapsado.
      *
      * @return array<string, string>
      */
@@ -368,75 +325,6 @@ class SaleForm
     }
 
     /**
-     * Botón de escaneo de código de barras con la cámara del dispositivo,
-     * visible solo en mobile (`sm:hidden`) porque es donde tiene sentido usar
-     * la cámara trasera. Abre un modal sin formulario propio: el contenido
-     * (resources/views/filament/sale-form/barcode-scanner.blade.php) corre
-     * la cámara vía `BarcodeDetector` nativo del navegador y, al detectar un
-     * código, llama a `$wire.callMountedAction({ barcode })` — que ejecuta
-     * este mismo `action()` con `$arguments['barcode']` poblado, sin volver a
-     * pasar por el click del botón (evita el doble disparo de mountAction).
-     */
-    private static function scanBarcodeAction(): Action
-    {
-        return Action::make('scanBarcode')
-            ->label('Escanear código de barras')
-            ->icon(Heroicon::OutlinedCamera)
-            ->color('gray')
-            ->extraAttributes(['class' => 'sm:hidden'])
-            ->modalHeading('Escanear código de barras')
-            ->modalWidth(Width::Small)
-            ->modalSubmitAction(false)
-            ->modalCancelActionLabel('Cerrar')
-            ->modalContent(fn () => view('filament.sale-form.barcode-scanner'))
-            ->action(function (array $arguments, Set $set, Get $get) {
-                $barcode = trim((string) ($arguments['barcode'] ?? ''));
-
-                if ($barcode === '') {
-                    return;
-                }
-
-                $product = Product::query()
-                    ->where('activo', true)
-                    ->where('barcode', $barcode)
-                    ->first();
-
-                if (! $product) {
-                    Notification::make()
-                        ->title("No se encontró ningún producto con el código {$barcode}")
-                        ->danger()
-                        ->send();
-
-                    return;
-                }
-
-                $set('product_id', $product->id);
-                $set('precio_unit', $product->precioParaLista($get('../../price_list_id')));
-                $set('costo_unit', $product->costo_ultimo);
-                self::recalculateLine($get, $set);
-            });
-    }
-
-    /**
-     * Recalcula el subtotal de una línea (cantidad × precio − descuento).
-     * Se llama desde dentro de un item del repeater, así que $get/$set están
-     * a nivel de esa línea.
-     */
-    private static function recalculateLine(Get $get, Set $set): void
-    {
-        $cantidad = (float) ($get('cantidad') ?? 0);
-        $precioUnit = (float) ($get('precio_unit') ?? 0);
-        $descuento = self::parseAmount($get('descuento'));
-
-        $set('subtotal', number_format(($cantidad * $precioUnit) - $descuento, 2, '.', ''));
-
-        self::recalculateSummaryFromRoot(
-            fn (string $key) => $get("../../{$key}"),
-            fn (string $key, $value) => $set("../../{$key}", $value),
-        );
-    }
-
-    /**
      * Las filas del repeater tal como vienen del estado del formulario,
      * descartando cualquier cosa que no sea una fila.
      *
@@ -454,7 +342,7 @@ class SaleForm
      * resumen (el descuento del resumen es manual, no se toca acá). Recibe
      * $get/$set ya resueltos a nivel raíz (o closures que lo simulan).
      */
-    private static function recalculateSummaryFromRoot(Get|Closure $get, Set|Closure $set): void
+    public static function recalculateSummaryFromRoot(Get|Closure $get, Set|Closure $set): void
     {
         $subtotal = collect(self::lineRows($get('lines')))
             ->sum(fn (array $line): float => (float) ($line['subtotal'] ?? 0));

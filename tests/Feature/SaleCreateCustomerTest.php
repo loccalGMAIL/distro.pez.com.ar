@@ -1,11 +1,10 @@
 <?php
 
-use App\Filament\Clusters\Sales\Resources\Sales\Pages\ListSales;
+use App\Filament\Clusters\Sales\Resources\Sales\Pages\CreateSale;
 use App\Models\Customer;
 use App\Models\PriceList;
 use App\Models\User;
 use App\Models\Warehouse;
-use Filament\Actions\CreateAction;
 use Filament\Actions\Testing\TestAction;
 use Livewire\Livewire;
 
@@ -19,8 +18,7 @@ beforeEach(function () {
 test('creating a customer from the sale form selects it as the sale customer', function () {
     $priceList = PriceList::factory()->create();
 
-    Livewire::test(ListSales::class)
-        ->mountAction(CreateAction::class)
+    Livewire::test(CreateSale::class)
         ->callAction(
             TestAction::make('createOption')->schemaComponent('customer_id'),
             data: [

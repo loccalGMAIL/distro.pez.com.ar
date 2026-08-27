@@ -8,13 +8,16 @@ use App\Filament\Clusters\Catalog\Resources\Products\Pages\EditProduct;
 use App\Filament\Clusters\Catalog\Resources\Products\Pages\ListProducts;
 use App\Filament\Clusters\Catalog\Resources\Products\Schemas\ProductForm;
 use App\Filament\Clusters\Catalog\Resources\Products\Tables\ProductsTable;
+use App\Models\PriceList;
 use App\Models\Product;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
+use Illuminate\Contracts\Support\Htmlable;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 
 class ProductResource extends Resource
@@ -56,6 +59,18 @@ class ProductResource extends Resource
     public static function getGloballySearchableAttributes(): array
     {
         return ['nombre', 'sku', 'barcode'];
+    }
+
+    public static function getGlobalSearchResultTitle(Model $record): string|Htmlable
+    {
+        if (! $record instanceof Product) {
+            return 'Producto';
+        }
+
+        $priceListId = PriceList::where('predeterminada', true)->value('id');
+        $precio = number_format((float) $record->precioParaLista($priceListId), 2, ',', '.');
+
+        return "{$record->nombre} — \${$precio}";
     }
 
     public static function getPages(): array
