@@ -8,6 +8,23 @@ y este proyecto sigue [Semantic Versioning](https://semver.org/lang/es/) (ver
 
 ## [Unreleased]
 
+### Added
+
+- Botón "Compartir lista de precios" en la vista de Productos, junto al
+  buscador de la tabla: al elegir una lista (Minorista, Mayorista o VIP) abre
+  en una pestaña nueva un PDF con el encabezado de la empresa, código de
+  barra, nombre, presentación y precio de cada producto activo en esa lista.
+- La misma acción de compartir lista de precios se agrega en dos lugares más:
+  la card "Compartir lista" del dashboard (reemplaza a "Nuevo cliente") y un
+  botón en la navbar mobile, al lado del botón de home.
+
+### Changed
+
+- El widget "Nuevo cliente" del dashboard se reemplaza por "Compartir lista".
+- Más separación entre los botones de la navbar mobile (menú, home,
+  compartir lista), que quedaban pegados por el margen negativo por defecto
+  de los `icon-button` de Filament.
+
 ## [0.7.1] - 2026-08-26
 
 ### Changed

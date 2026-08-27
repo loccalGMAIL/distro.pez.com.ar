@@ -85,18 +85,11 @@ class ProductsTable
      * El multiplicador de cada lista se calcula una sola vez acá (no depende
      * del producto), evitando recorrer la cadena de "basada en" por fila.
      *
-     * Se muestran en el orden de negocio minorista, mayorista y VIP, en vez
-     * del orden alfabético.
-     *
      * @return array<int, TextColumn>
      */
     private static function priceListColumns(): array
     {
-        return PriceList::query()
-            ->where('activo', true)
-            ->orderBy('nombre')
-            ->get()
-            ->sortBy(fn (PriceList $priceList): int => self::priceListSortOrder($priceList->nombre))
+        return PriceList::orderedForDisplay()
             ->map(function (PriceList $priceList): TextColumn {
                 $multiplicador = $priceList->multiplicador();
 
@@ -107,15 +100,5 @@ class ProductsTable
                     ->toggleable();
             })
             ->all();
-    }
-
-    private static function priceListSortOrder(string $nombre): int
-    {
-        return match (true) {
-            str_contains(mb_strtolower($nombre), 'minorista') => 0,
-            str_contains(mb_strtolower($nombre), 'mayorista') => 1,
-            str_contains(mb_strtolower($nombre), 'vip') => 2,
-            default => 3,
-        };
     }
 }

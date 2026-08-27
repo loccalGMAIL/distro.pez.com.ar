@@ -50,7 +50,7 @@ class ProductForm
                     ]),
                 Select::make('base_unit')
                     ->label('Unidad base')
-                    ->options(self::baseUnitOptions())
+                    ->options(Product::baseUnitOptions())
                     ->required()
                     ->default('unidad'),
                 TextInput::make('costo_ultimo')
@@ -98,7 +98,7 @@ class ProductForm
                 ->required(),
             Select::make('base_unit')
                 ->label('Unidad base')
-                ->options(self::baseUnitOptions())
+                ->options(Product::baseUnitOptions())
                 ->required()
                 ->default('unidad'),
             TextInput::make('costo_ultimo')
@@ -107,25 +107,6 @@ class ProductForm
                 ->numeric()
                 ->prefix('$')
                 ->default(0.0),
-        ];
-    }
-
-    /**
-     * @return array<string, string>
-     */
-    private static function baseUnitOptions(): array
-    {
-        return [
-            'unidad' => 'Unidad',
-            'kg' => 'Kilogramo',
-            'gramo' => 'Gramo',
-            'litro' => 'Litro',
-            'mililitro' => 'Mililitro',
-            'docena' => 'Docena',
-            'caja' => 'Caja',
-            'bulto' => 'Bulto',
-            'paquete' => 'Paquete',
-            'metro' => 'Metro',
         ];
     }
 

@@ -1,10 +1,12 @@
 <?php
 
 use App\Http\Controllers\Auth\GoogleAuthController;
+use App\Models\PriceList;
 use App\Models\Purchase;
 use App\Models\Sale;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 Route::redirect('/', '/dashboard/login')->name('home');
 
@@ -15,6 +17,10 @@ Route::get('/ventas/{sale}/comprobante', function (Sale $sale) {
 
     return $sale->comprobantePdf()->stream("comprobante-{$comprobanteNumero}.pdf");
 })->middleware('auth')->name('sales.comprobante');
+
+Route::get('/listas-precios/{priceList}/pdf', function (PriceList $priceList) {
+    return $priceList->productsPdf()->stream('lista-precios-'.Str::slug($priceList->nombre).'.pdf');
+})->middleware('auth')->name('price-lists.pdf');
 
 Route::get('/compras/{purchase}/archivo', function (Purchase $purchase) {
     abort_unless(filled($purchase->archivo_path), 404);

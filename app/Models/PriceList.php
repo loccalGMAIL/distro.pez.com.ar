@@ -2,7 +2,10 @@
 
 namespace App\Models;
 
+use Barryvdh\DomPDF\Facade\Pdf;
+use Barryvdh\DomPDF\PDF as PdfDocument;
 use Database\Factories\PriceListFactory;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -101,6 +104,46 @@ class PriceList extends Model
     public function precioPara(Product $product): string
     {
         return number_format((float) $product->costo_ultimo * $this->multiplicador(), 2, '.', '');
+    }
+
+    /**
+     * Listas activas en el orden de negocio (minorista, mayorista, VIP), en
+     * vez del orden alfabético. Usado tanto por las columnas de precio de la
+     * tabla de Productos como por el botón de compartir lista de precios.
+     *
+     * @return Collection<int, static>
+     */
+    public static function orderedForDisplay(): Collection
+    {
+        return static::query()
+            ->where('activo', true)
+            ->orderBy('nombre')
+            ->get()
+            ->sortBy(fn (self $priceList): int => self::displaySortOrder($priceList->nombre))
+            ->values();
+    }
+
+    private static function displaySortOrder(string $nombre): int
+    {
+        return match (true) {
+            str_contains(mb_strtolower($nombre), 'minorista') => 0,
+            str_contains(mb_strtolower($nombre), 'mayorista') => 1,
+            str_contains(mb_strtolower($nombre), 'vip') => 2,
+            default => 3,
+        };
+    }
+
+    /**
+     * PDF para compartir esta lista de precios: código de barra, nombre,
+     * unidad de presentación y precio de cada producto activo.
+     */
+    public function productsPdf(): PdfDocument
+    {
+        return Pdf::loadView('pdf.price-lists.productos', [
+            'priceList' => $this,
+            'products' => Product::query()->where('activo', true)->orderBy('nombre')->get(),
+            'company' => CompanySetting::query()->first(),
+        ]);
     }
 
     /**
