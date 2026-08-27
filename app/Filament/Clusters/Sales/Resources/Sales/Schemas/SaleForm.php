@@ -10,10 +10,12 @@ use App\Models\Sale;
 use App\Models\Warehouse;
 use Closure;
 use Filament\Actions\Action;
+use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Repeater\TableColumn;
 use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Schemas\Components\Component;
@@ -64,9 +66,6 @@ class SaleForm
             //     ->disabled()
             //     ->dehydrated(false)
             //     ->placeholder('Automático'),
-            Hidden::make('fecha')
-                ->required()
-                ->default(now()),
             Select::make('customer_id')
                 ->label('Cliente')
                 ->relationship('customer', 'razon_social')
@@ -83,11 +82,39 @@ class SaleForm
                 ->createOptionForm(CustomerForm::quickCreateFields())
                 ->createOptionModalHeading('Nuevo cliente')
                 ->columnSpanFull(),
-            Hidden::make('warehouse_id')
-                ->required()
-                ->default(fn () => Warehouse::where('predeterminado', true)->value('id')),
-            Hidden::make('price_list_id')
-                ->default(fn () => PriceList::where('predeterminada', true)->value('id')),
+            Section::make()
+                ->collapsible()
+                ->collapsed()
+                ->compact()
+                ->columns(2)
+                ->columnSpanFull()
+                ->extraAttributes(self::compactAccordionAttributes())
+                ->schema([
+                    DatePicker::make('fecha')
+                        ->required()
+                        ->default(now()),
+                    Select::make('price_list_id')
+                        ->label('Lista')
+                        ->relationship('priceList', 'nombre')
+                        ->searchable()
+                        ->preload()
+                        ->default(fn () => PriceList::where('predeterminada', true)->value('id')),
+                    Select::make('warehouse_id')
+                        ->label('Depósito')
+                        ->relationship('warehouse', 'nombre')
+                        ->searchable()
+                        ->preload()
+                        ->required()
+                        ->default(fn () => Warehouse::where('predeterminado', true)->value('id')),
+                    Select::make('user_id')
+                        ->label('Usuario')
+                        ->relationship('user', 'name')
+                        ->searchable()
+                        ->preload()
+                        ->default(fn () => auth()->id()),
+                    Textarea::make('observaciones')
+                        ->columnSpanFull(),
+                ]),
 
             View::make('filament.sale-form.product-cards')
                 ->viewData([
@@ -155,9 +182,6 @@ class SaleForm
                 ->required()
                 ->minItems(1)
                 ->columnSpanFull(),
-            Hidden::make('user_id')
-                ->default(fn () => auth()->id()),
-            Hidden::make('observaciones'),
             Hidden::make('status')
                 ->default('confirmada'),
         ];
@@ -233,9 +257,10 @@ class SaleForm
     }
 
     /**
-     * Header más chico para el Section sin título usado como acordeón
-     * (Forma de pago): botón de plegar y padding reducidos, para que el
-     * control ocupe lo mínimo cuando está colapsado.
+     * Header más chico para los Section sin título usados como acordeón
+     * (Fecha/Lista/Depósito/Usuario/Observaciones y Forma de pago): botón de
+     * plegar y padding reducidos, para que el control ocupe lo mínimo cuando
+     * está colapsado.
      *
      * @return array<string, string>
      */
