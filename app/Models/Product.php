@@ -89,4 +89,28 @@ class Product extends Model
 
         return $priceList->precioPara($this);
     }
+
+    /**
+     * @return array<string, string>
+     */
+    public static function baseUnitOptions(): array
+    {
+        return [
+            'unidad' => 'Unidad',
+            'kg' => 'Kilogramo',
+            'gramo' => 'Gramo',
+            'litro' => 'Litro',
+            'mililitro' => 'Mililitro',
+            'docena' => 'Docena',
+            'caja' => 'Caja',
+            'bulto' => 'Bulto',
+            'paquete' => 'Paquete',
+            'metro' => 'Metro',
+        ];
+    }
+
+    public function baseUnitLabel(): string
+    {
+        return self::baseUnitOptions()[$this->base_unit] ?? $this->base_unit;
+    }
 }

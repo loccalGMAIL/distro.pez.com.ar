@@ -22,7 +22,8 @@ class ProductsTable
             ->columns([
                 TextColumn::make('sku')
                     ->label('SKU')
-                    ->searchable(),
+                    ->searchable()
+                    ->toggleable(),
                 TextColumn::make('barcode')
                     ->searchable()
                     ->toggleable(),
@@ -37,7 +38,7 @@ class ProductsTable
                     ->toggleable(),
                 TextColumn::make('costo_ultimo')
                     ->label('Costo')
-                    ->numeric()
+                    ->money('ARS', locale: 'es_AR')
                     ->sortable()
                     ->toggleable(),
                 ...self::priceListColumns(),
@@ -88,17 +89,14 @@ class ProductsTable
      */
     private static function priceListColumns(): array
     {
-        return PriceList::query()
-            ->where('activo', true)
-            ->orderBy('nombre')
-            ->get()
+        return PriceList::orderedForDisplay()
             ->map(function (PriceList $priceList): TextColumn {
                 $multiplicador = $priceList->multiplicador();
 
                 return TextColumn::make("price_list_{$priceList->id}")
                     ->label($priceList->nombre)
                     ->state(fn (Product $record): string => number_format((float) $record->costo_ultimo * $multiplicador, 2, '.', ''))
-                    ->money('ARS')
+                    ->money('ARS', locale: 'es_AR')
                     ->toggleable();
             })
             ->all();
