@@ -60,6 +60,10 @@ class PriceListForm
                     ->label('Predeterminada para ventas')
                     ->helperText('Se usa como lista de precios por defecto al crear una venta. Solo puede haber una.')
                     ->default(false),
+                Toggle::make('compartible')
+                    ->label('Se puede compartir')
+                    ->helperText('Si está apagado, la lista no aparece en el botón de compartir ni se puede descargar su PDF.')
+                    ->default(true),
                 Toggle::make('activo')
                     ->required()
                     ->default(true),

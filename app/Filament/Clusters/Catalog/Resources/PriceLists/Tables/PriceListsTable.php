@@ -30,6 +30,9 @@ class PriceListsTable
                 IconColumn::make('predeterminada')
                     ->label('Predeterminada')
                     ->boolean(),
+                IconColumn::make('compartible')
+                    ->label('Compartible')
+                    ->boolean(),
                 IconColumn::make('activo')
                     ->boolean(),
                 TextColumn::make('created_at')

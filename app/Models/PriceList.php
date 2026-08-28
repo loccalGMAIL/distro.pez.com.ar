@@ -24,6 +24,7 @@ class PriceList extends Model
         'based_on_price_list_id',
         'porcentaje',
         'predeterminada',
+        'compartible',
         'activo',
     ];
 
@@ -32,6 +33,7 @@ class PriceList extends Model
         return [
             'porcentaje' => 'decimal:2',
             'predeterminada' => 'boolean',
+            'compartible' => 'boolean',
             'activo' => 'boolean',
         ];
     }
@@ -108,8 +110,8 @@ class PriceList extends Model
 
     /**
      * Listas activas en el orden de negocio (minorista, mayorista, VIP), en
-     * vez del orden alfabético. Usado tanto por las columnas de precio de la
-     * tabla de Productos como por el botón de compartir lista de precios.
+     * vez del orden alfabético. Usado por las columnas de precio de la tabla
+     * de Productos.
      *
      * @return Collection<int, static>
      */
@@ -120,6 +122,20 @@ class PriceList extends Model
             ->orderBy('nombre')
             ->get()
             ->sortBy(fn (self $priceList): int => self::displaySortOrder($priceList->nombre))
+            ->values();
+    }
+
+    /**
+     * Listas que se pueden compartir con clientes: activas y con el switch
+     * `compartible` prendido. Usado por el botón de compartir lista de precios
+     * (topbar, widget y tabla de Productos).
+     *
+     * @return Collection<int, static>
+     */
+    public static function orderedForSharing(): Collection
+    {
+        return static::orderedForDisplay()
+            ->filter(fn (self $priceList): bool => $priceList->compartible)
             ->values();
     }
 

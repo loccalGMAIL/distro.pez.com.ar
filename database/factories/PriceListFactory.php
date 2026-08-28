@@ -16,6 +16,7 @@ class PriceListFactory extends Factory
             'nombre' => fake()->unique()->words(2, true),
             'codigo' => fake()->unique()->bothify('LP-##'),
             'porcentaje' => fake()->randomFloat(2, 0, 100),
+            'compartible' => true,
             'activo' => true,
         ];
     }

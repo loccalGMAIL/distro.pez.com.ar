@@ -13,7 +13,7 @@ class PriceListSeeder extends Seeder
 
         $mayorista = PriceList::firstOrCreate(
             ['codigo' => 'LP-001'],
-            ['nombre' => 'Mayorista', 'porcentaje' => 25, 'predeterminada' => false, 'activo' => true],
+            ['nombre' => 'Mayorista', 'porcentaje' => 25, 'predeterminada' => false, 'compartible' => true, 'activo' => true],
         );
 
         // Minorista = Mayorista + 20% (encadenada). Predeterminada solo si
@@ -25,6 +25,7 @@ class PriceListSeeder extends Seeder
                 'based_on_price_list_id' => $mayorista->id,
                 'porcentaje' => 20,
                 'predeterminada' => ! $hasDefault,
+                'compartible' => true,
                 'activo' => true,
             ],
         );
@@ -37,6 +38,7 @@ class PriceListSeeder extends Seeder
                 'based_on_price_list_id' => $mayorista->id,
                 'porcentaje' => -5,
                 'predeterminada' => false,
+                'compartible' => true,
                 'activo' => true,
             ],
         );
