@@ -12,18 +12,18 @@
         <span class="flex flex-1 flex-col">
             @if ($openEntry)
                 <span class="text-base font-semibold text-gray-950 dark:text-white">
-                    Trabajando desde {{ $openEntry->started_at->format('H:i') }}
+                    {{ $openEntry->started_at->format('H:i') }}
                 </span>
-                <span class="text-sm text-gray-500 dark:text-gray-400">
+                <!-- <span class="text-sm text-gray-500 dark:text-gray-400">
                     Jornada en curso
-                </span>
+                </span> -->
             @else
-                <span class="text-base font-semibold text-gray-950 dark:text-white">
+                <!-- <span class="text-base font-semibold text-gray-950 dark:text-white">
                     Jornada no iniciada
-                </span>
-                <span class="text-sm text-gray-500 dark:text-gray-400">
+                </span> -->
+                <!-- <span class="text-sm text-gray-500 dark:text-gray-400">
                     Marcá el inicio cuando empieces a trabajar
-                </span>
+                </span> -->
             @endif
         </span>
 
