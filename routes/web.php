@@ -4,6 +4,9 @@ use App\Http\Controllers\Auth\GoogleAuthController;
 use App\Models\PriceList;
 use App\Models\Purchase;
 use App\Models\Sale;
+use App\Services\TimeEntryReport;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -30,6 +33,18 @@ Route::get('/compras/{purchase}/archivo', function (Purchase $purchase) {
 
     return Storage::disk('local')->response($purchase->archivo_path);
 })->middleware('auth')->name('purchases.archivo');
+
+Route::get('/fichajes/reporte.pdf', function (Request $request) {
+    abort_unless(Auth::user()?->can('View:TimeEntriesReport'), 403);
+
+    $report = new TimeEntryReport(
+        $request->integer('user_id') ?: null,
+        $request->string('desde')->toString() ?: null,
+        $request->string('hasta')->toString() ?: null,
+    );
+
+    return $report->pdf()->stream('reporte-fichajes.pdf');
+})->middleware('auth')->name('time-entries.report.pdf');
 
 Route::get('/auth/google/redirect', [GoogleAuthController::class, 'redirect'])
     ->name('auth.google.redirect');

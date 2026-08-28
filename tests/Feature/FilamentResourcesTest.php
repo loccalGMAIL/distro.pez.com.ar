@@ -19,6 +19,7 @@ $resources = [
     'purchases/stock-movements',
     'settings/users',
     'settings/activity-logs',
+    'settings/time-entries',
 ];
 
 // Ventas y Compras no tienen página /create propia (se crean por modal desde

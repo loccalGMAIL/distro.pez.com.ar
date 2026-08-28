@@ -8,6 +8,8 @@ y este proyecto sigue [Semantic Versioning](https://semver.org/lang/es/) (ver
 
 ## [Unreleased]
 
+## [0.7.2] - 2026-08-28
+
 ### Added
 
 - Botón "Compartir lista de precios" en la vista de Productos, junto al
@@ -20,6 +22,13 @@ y este proyecto sigue [Semantic Versioning](https://semver.org/lang/es/) (ver
 - Switch "Se puede compartir" en cada lista de precios: si está apagado, la
   lista no aparece en ninguno de los botones de compartir y su PDF devuelve
   404. Las listas existentes y las nuevas quedan compartibles por defecto.
+- **Fichaje por hora**: nuevo rol "administrativo" con un botón en el
+  dashboard para marcar inicio/fin de jornada (visible solo para ese rol).
+  Cada usuario administrativo tiene una tarifa horaria seteable desde
+  Configuración → Usuarios. El dueño (roles `admin`/`Dueño`) gestiona los
+  ciclos manualmente desde Configuración → Fichajes y accede a un informe
+  filtrable por empleado y período (Configuración → Reporte de fichajes),
+  con horas y monto a cobrar totalizados por empleado y descarga en PDF.
 
 ### Changed
 
@@ -27,6 +36,10 @@ y este proyecto sigue [Semantic Versioning](https://semver.org/lang/es/) (ver
 - Más separación entre los botones de la navbar mobile (menú, home,
   compartir lista), que quedaban pegados por el margen negativo por defecto
   de los `icon-button` de Filament.
+- El rol "Dueño" (hasta ahora creado a mano en producción, sin rastro en el
+  código) queda versionado en `ShieldSeeder`, con los mismos permisos de
+  fichajes que tiene `admin` (gestión manual de ciclos + informe), sin el
+  botón de fichar.
 
 ## [0.7.1] - 2026-08-26
 
