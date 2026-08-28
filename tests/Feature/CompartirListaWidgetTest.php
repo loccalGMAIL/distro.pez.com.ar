@@ -15,3 +15,14 @@ test('the widget links to share every active price list', function () {
         ->assertSeeHtml(route('price-lists.pdf', $minorista))
         ->assertDontSeeHtml(route('price-lists.pdf', $inactiva));
 });
+
+test('the widget does not link price lists with sharing turned off', function () {
+    $this->actingAs(User::factory()->create(['activo' => true]));
+
+    $compartible = PriceList::factory()->create(['nombre' => 'Minorista', 'compartible' => true]);
+    $interna = PriceList::factory()->create(['nombre' => 'Interna', 'compartible' => false]);
+
+    Livewire::test(CompartirListaWidget::class)
+        ->assertSeeHtml(route('price-lists.pdf', $compartible))
+        ->assertDontSeeHtml(route('price-lists.pdf', $interna));
+});

@@ -70,3 +70,17 @@ test('marking a price list as default unmarks the previous default', function ()
     expect($a->fresh()->predeterminada)->toBeFalse();
     expect($b->fresh()->predeterminada)->toBeTrue();
 });
+
+test('orderedForSharing only returns active price lists with sharing turned on', function () {
+    $compartible = PriceList::factory()->create(['nombre' => 'Minorista', 'compartible' => true, 'activo' => true]);
+    PriceList::factory()->create(['nombre' => 'Interna', 'compartible' => false, 'activo' => true]);
+    PriceList::factory()->create(['nombre' => 'Descontinuada', 'compartible' => true, 'activo' => false]);
+
+    expect(PriceList::orderedForSharing()->pluck('id')->all())->toEqual([$compartible->id]);
+});
+
+test('price lists are shareable by default', function () {
+    $priceList = PriceList::create(['nombre' => 'Nueva', 'porcentaje' => 10]);
+
+    expect($priceList->fresh()->compartible)->toBeTrue();
+});

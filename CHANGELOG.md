@@ -17,6 +17,9 @@ y este proyecto sigue [Semantic Versioning](https://semver.org/lang/es/) (ver
 - La misma acción de compartir lista de precios se agrega en dos lugares más:
   la card "Compartir lista" del dashboard (reemplaza a "Nuevo cliente") y un
   botón en la navbar mobile, al lado del botón de home.
+- Switch "Se puede compartir" en cada lista de precios: si está apagado, la
+  lista no aparece en ninguno de los botones de compartir y su PDF devuelve
+  404. Las listas existentes y las nuevas quedan compartibles por defecto.
 
 ### Changed
 

@@ -19,6 +19,8 @@ Route::get('/ventas/{sale}/comprobante', function (Sale $sale) {
 })->middleware('auth')->name('sales.comprobante');
 
 Route::get('/listas-precios/{priceList}/pdf', function (PriceList $priceList) {
+    abort_unless($priceList->compartible, 404);
+
     return $priceList->productsPdf()->stream('lista-precios-'.Str::slug($priceList->nombre).'.pdf');
 })->middleware('auth')->name('price-lists.pdf');
 
