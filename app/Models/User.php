@@ -8,6 +8,7 @@ use Filament\Models\Contracts\FilamentUser;
 use Filament\Panel;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -28,10 +29,11 @@ use Spatie\Permission\Traits\HasRoles;
  * @property string|null $remember_token
  * @property string|null $google_id
  * @property string|null $avatar
+ * @property string|null $hourly_rate
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
-#[Fillable(['name', 'email', 'password', 'activo', 'google_id', 'avatar'])]
+#[Fillable(['name', 'email', 'password', 'activo', 'google_id', 'avatar', 'hourly_rate'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable implements FilamentUser
 {
@@ -63,6 +65,7 @@ class User extends Authenticatable implements FilamentUser
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'activo' => 'boolean',
+            'hourly_rate' => 'decimal:2',
         ];
     }
 
@@ -104,6 +107,31 @@ class User extends Authenticatable implements FilamentUser
     public function stockMovements(): HasMany
     {
         return $this->hasMany(StockMovement::class);
+    }
+
+    /**
+     * @return HasMany<TimeEntry, $this>
+     */
+    public function timeEntries(): HasMany
+    {
+        return $this->hasMany(TimeEntry::class);
+    }
+
+    /**
+     * Empleados con el rol "administrativo", para el selector del fichaje
+     * manual y el informe. No usa el scope role() de Spatie porque ese
+     * lanza una excepción si el rol todavía no existe (por ejemplo, antes
+     * de correr ShieldSeeder en una instalación nueva).
+     *
+     * @return array<int, string>
+     */
+    public static function administrativoOptions(): array
+    {
+        return static::query()
+            ->whereHas('roles', fn (Builder $query): Builder => $query->where('name', 'administrativo'))
+            ->orderBy('name')
+            ->pluck('name', 'id')
+            ->all();
     }
 
     /**

@@ -34,6 +34,10 @@ class UserForm
                     ->multiple()
                     ->preload()
                     ->required(),
+                TextInput::make('hourly_rate')
+                    ->label('Tarifa por hora')
+                    ->numeric()
+                    ->prefix('$'),
                 Toggle::make('activo')
                     ->label('Activo')
                     ->default(true)

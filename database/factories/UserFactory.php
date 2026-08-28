@@ -60,4 +60,16 @@ class UserFactory extends Factory
     {
         return $this->withRole('vendedor');
     }
+
+    public function administrativo(): static
+    {
+        return $this->withRole('administrativo');
+    }
+
+    public function hourlyRate(float $rate): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'hourly_rate' => $rate,
+        ]);
+    }
 }
