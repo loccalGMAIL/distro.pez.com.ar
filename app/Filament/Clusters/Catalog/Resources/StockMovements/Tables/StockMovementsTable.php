@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Filament\Clusters\Purchases\Resources\StockMovements\Tables;
+namespace App\Filament\Clusters\Catalog\Resources\StockMovements\Tables;
 
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;

@@ -1,13 +1,13 @@
 <?php
 
-namespace App\Filament\Clusters\Purchases\Resources\StockMovements;
+namespace App\Filament\Clusters\Catalog\Resources\StockMovements;
 
-use App\Filament\Clusters\Purchases\PurchasesCluster;
-use App\Filament\Clusters\Purchases\Resources\StockMovements\Pages\CreateStockMovement;
-use App\Filament\Clusters\Purchases\Resources\StockMovements\Pages\EditStockMovement;
-use App\Filament\Clusters\Purchases\Resources\StockMovements\Pages\ListStockMovements;
-use App\Filament\Clusters\Purchases\Resources\StockMovements\Schemas\StockMovementForm;
-use App\Filament\Clusters\Purchases\Resources\StockMovements\Tables\StockMovementsTable;
+use App\Filament\Clusters\Catalog\CatalogCluster;
+use App\Filament\Clusters\Catalog\Resources\StockMovements\Pages\CreateStockMovement;
+use App\Filament\Clusters\Catalog\Resources\StockMovements\Pages\EditStockMovement;
+use App\Filament\Clusters\Catalog\Resources\StockMovements\Pages\ListStockMovements;
+use App\Filament\Clusters\Catalog\Resources\StockMovements\Schemas\StockMovementForm;
+use App\Filament\Clusters\Catalog\Resources\StockMovements\Tables\StockMovementsTable;
 use App\Models\StockMovement;
 use BackedEnum;
 use Filament\Resources\Resource;
@@ -23,11 +23,11 @@ class StockMovementResource extends Resource
 
     protected static ?string $pluralModelLabel = 'Movimientos de stock';
 
-    protected static ?string $cluster = PurchasesCluster::class;
+    protected static ?string $cluster = CatalogCluster::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
 
-    protected static ?int $navigationSort = 2;
+    protected static ?int $navigationSort = 4;
 
     public static function form(Schema $schema): Schema
     {

@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Filament\Clusters\Purchases\Resources\StockMovements\Pages;
+namespace App\Filament\Clusters\Catalog\Resources\StockMovements\Pages;
 
-use App\Filament\Clusters\Purchases\Resources\StockMovements\StockMovementResource;
+use App\Filament\Clusters\Catalog\Resources\StockMovements\StockMovementResource;
 use Filament\Resources\Pages\CreateRecord;
 
 class CreateStockMovement extends CreateRecord

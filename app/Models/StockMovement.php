@@ -10,6 +10,9 @@ use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
 
+/**
+ * @property-read float|string|null $total Suma agrupada de quantity, poblada solo por la eager-load agregada de ProductsTable::configure() (SUM por product_id+warehouse_id). No existe fuera de ese contexto.
+ */
 class StockMovement extends Model
 {
     /** @use HasFactory<StockMovementFactory> */
