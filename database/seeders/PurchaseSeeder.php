@@ -52,6 +52,7 @@ class PurchaseSeeder extends Seeder
             }
 
             $purchase->update(['subtotal' => $total, 'total' => $total, 'saldo' => $total]);
+            $supplier->recalcularBalance();
         });
 
         // Stock inicial: todo producto arranca con existencia en el depósito

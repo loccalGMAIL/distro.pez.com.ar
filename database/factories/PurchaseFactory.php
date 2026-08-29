@@ -24,7 +24,7 @@ class PurchaseFactory extends Factory
             'fecha' => fake()->dateTimeBetween('-1 month'),
             'subtotal' => $total,
             'total' => $total,
-            'saldo' => $total,
+            'saldo' => 0,
             'status' => 'borrador',
         ];
     }

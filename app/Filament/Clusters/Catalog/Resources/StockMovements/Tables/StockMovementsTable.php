@@ -27,7 +27,7 @@ class StockMovementsTable
                     ->sortable(),
                 TextColumn::make('unit_cost')
                     ->label('Costo unitario')
-                    ->money('ARS')
+                    ->money('ARS', locale: 'es_AR')
                     ->sortable(),
                 TextColumn::make('type')
                     ->label('Tipo')

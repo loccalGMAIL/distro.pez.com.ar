@@ -29,6 +29,7 @@ class Purchase extends Model
         'subtotal',
         'descuento',
         'iva',
+        'percepciones',
         'total',
         'saldo',
         'status',
@@ -45,6 +46,7 @@ class Purchase extends Model
             'subtotal' => 'decimal:2',
             'descuento' => 'decimal:2',
             'iva' => 'decimal:2',
+            'percepciones' => 'decimal:2',
             'total' => 'decimal:2',
             'saldo' => 'decimal:2',
             'ocr_data' => 'array',
@@ -86,6 +88,14 @@ class Purchase extends Model
     public function lines(): HasMany
     {
         return $this->hasMany(PurchaseLine::class);
+    }
+
+    /**
+     * @return HasMany<PurchasePerception, $this>
+     */
+    public function perceptions(): HasMany
+    {
+        return $this->hasMany(PurchasePerception::class);
     }
 
     /**
@@ -134,16 +144,39 @@ class Purchase extends Model
     }
 
     /**
-     * Confirma la compra (si no lo estaba ya) e ingresa stock.
+     * Confirma la compra (si no lo estaba ya), ingresa stock y genera la
+     * deuda con el proveedor.
      */
     public function confirmar(): void
     {
-        if ($this->status !== 'confirmada') {
-            $this->status = 'confirmada';
-            $this->save();
-        }
+        DB::transaction(function () {
+            if ($this->status !== 'confirmada') {
+                $this->status = 'confirmada';
+                $this->save();
+            }
 
-        $this->aumentarStock();
+            $this->aumentarStock();
+            $this->recalcularSaldo();
+            $this->supplier->recalcularBalance();
+        });
+    }
+
+    /**
+     * Recalcula `saldo` desde la fuente de verdad (total − pagos imputados)
+     * en vez de incrementar/decrementar a mano, para no desincronizarse.
+     * Una compra en `borrador` o `anulada` no genera deuda: saldo = 0.
+     * Sin `max(0, ...)`: un sobrepago queda como saldo negativo a propósito,
+     * no se oculta.
+     */
+    public function recalcularSaldo(): void
+    {
+        $saldo = $this->status === 'confirmada'
+            ? (float) $this->total - (float) $this->paymentAllocations()->sum('monto')
+            : 0.0;
+
+        if ((float) $this->saldo !== $saldo) {
+            $this->update(['saldo' => $saldo]);
+        }
     }
 
     /**
@@ -190,6 +223,9 @@ class Purchase extends Model
             $this->status = 'anulada';
             $this->numero = null;
             $this->save();
+
+            $this->recalcularSaldo();
+            $this->supplier->recalcularBalance();
         });
     }
 }

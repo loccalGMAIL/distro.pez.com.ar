@@ -44,10 +44,13 @@ class SupplierForm
                     ->numeric()
                     ->default(0),
                 TextInput::make('balance')
-                    ->required()
+                    ->label('Saldo')
+                    ->helperText('Calculado: compras confirmadas menos pagos imputados. No se edita a mano.')
                     ->numeric()
                     ->prefix('$')
-                    ->default(0.0),
+                    ->default(0.0)
+                    ->disabled()
+                    ->dehydrated(false),
                 Textarea::make('observaciones')
                     ->columnSpanFull(),
                 Toggle::make('activo')

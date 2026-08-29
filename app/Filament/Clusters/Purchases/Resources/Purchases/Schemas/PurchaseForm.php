@@ -3,6 +3,7 @@
 namespace App\Filament\Clusters\Purchases\Resources\Purchases\Schemas;
 
 use App\Filament\Forms\Components\NativeFileButton;
+use App\Models\PerceptionType;
 use App\Models\Product;
 use App\Models\Supplier;
 use App\Models\Warehouse;
@@ -45,6 +46,7 @@ class PurchaseForm
                     ->inlineLabel()
                     ->schema(self::summaryFields()),
                 self::linesRepeater(),
+                self::perceptionsRepeater(),
             ]);
     }
 
@@ -177,6 +179,14 @@ class PurchaseForm
                 ->dehydrateStateUsing(fn ($state) => self::parseAmount($state))
                 ->extraInputAttributes(['style' => 'text-align: right;'])
                 ->afterStateUpdated(fn (Get $get, Set $set) => self::recalculateTotal($get, $set)),
+            Hidden::make('percepciones')
+                ->default(0),
+            TextEntry::make('percepciones_display')
+                ->label('Percepciones')
+                ->state(fn (Get $get) => (float) ($get('percepciones') ?? 0))
+                ->numeric(decimalPlaces: 2, decimalSeparator: ',', thousandsSeparator: '.')
+                ->prefix('$')
+                ->extraAttributes(['style' => 'display: block; text-align: right;']),
             Hidden::make('total')
                 ->default(0),
             TextEntry::make('total_display')
@@ -281,6 +291,63 @@ class PurchaseForm
             ->addActionLabel('Agregar producto')
             ->required()
             ->minItems(1)
+            ->columnSpanFull();
+    }
+
+    /**
+     * Percepciones cargadas por el proveedor en la factura (IIBB, IVA RG,
+     * etc.), cada una vinculada a un `PerceptionType` del catálogo. A
+     * diferencia de las líneas de producto, el monto se tipea directo (no
+     * hay cantidad × costo que calcular).
+     */
+    private static function perceptionsRepeater(): Repeater
+    {
+        return Repeater::make('perceptions')
+            ->label('Percepciones')
+            ->relationship()
+            ->live()
+            ->default([])
+            ->afterStateUpdated(fn (Get $get, Set $set) => self::recalculateSummaryFromRoot($get, $set))
+            ->table([
+                TableColumn::make('Tipo'),
+                TableColumn::make('Descripción'),
+                TableColumn::make('Monto')->width('120px')->alignment(Alignment::End),
+            ])
+            ->compact()
+            ->schema([
+                Select::make('perception_type_id')
+                    ->label('Tipo')
+                    ->hiddenLabel()
+                    ->relationship('perceptionType', 'nombre')
+                    ->searchable()
+                    ->preload()
+                    ->required()
+                    ->createOptionForm([
+                        TextInput::make('nombre')->required(),
+                    ])
+                    ->createOptionUsing(fn (array $data): int => PerceptionType::create([
+                        ...$data,
+                        'activo' => true,
+                    ])->getKey())
+                    ->extraAttributes(['style' => 'min-width: 12rem;']),
+                TextInput::make('descripcion')
+                    ->hiddenLabel()
+                    ->extraInputAttributes(['style' => 'font-size: 0.75rem;']),
+                TextInput::make('monto')
+                    ->hiddenLabel()
+                    ->required()
+                    ->prefix('$')
+                    ->default(0.0)
+                    ->live()
+                    ->mask(RawJs::make("\$money(\$input, ',')"))
+                    ->dehydrateStateUsing(fn ($state) => self::parseAmount($state))
+                    ->extraInputAttributes(['style' => 'text-align: right; font-size: 0.75rem;'])
+                    ->afterStateUpdated(fn (Get $get, Set $set) => self::recalculateSummaryFromRoot(
+                        fn (string $key) => $get("../../{$key}"),
+                        fn (string $key, $value) => $set("../../{$key}", $value),
+                    )),
+            ])
+            ->addActionLabel('Agregar percepción')
             ->columnSpanFull();
     }
 
@@ -396,19 +463,25 @@ class PurchaseForm
 
         $set('subtotal', number_format($subtotal, 2, '.', ''));
 
+        $percepciones = collect(self::lineRows($get('perceptions')))
+            ->sum(fn (array $perception): float => self::parseAmount($perception['monto'] ?? 0));
+
+        $set('percepciones', number_format($percepciones, 2, '.', ''));
+
         self::recalculateTotal($get, $set);
     }
 
     /**
-     * Total = subtotal - descuento + iva.
+     * Total = subtotal - descuento + iva + percepciones.
      */
     private static function recalculateTotal(Get|Closure $get, Set|Closure $set): void
     {
         $subtotal = (float) ($get('subtotal') ?? 0);
         $descuento = self::parseAmount($get('descuento'));
         $iva = self::parseAmount($get('iva'));
+        $percepciones = (float) ($get('percepciones') ?? 0);
 
-        $set('total', number_format($subtotal - $descuento + $iva, 2, '.', ''));
+        $set('total', number_format($subtotal - $descuento + $iva + $percepciones, 2, '.', ''));
     }
 
     /**

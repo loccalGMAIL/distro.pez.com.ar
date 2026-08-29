@@ -35,7 +35,7 @@ class PaymentsTable
                     ->date()
                     ->sortable(),
                 TextColumn::make('monto')
-                    ->money('ARS')
+                    ->money('ARS', locale: 'es_AR')
                     ->sortable(),
                 TextColumn::make('medio_pago')
                     ->badge(),
@@ -43,7 +43,7 @@ class PaymentsTable
                     ->searchable(),
                 TextColumn::make('sin_imputar')
                     ->label('Sin imputar')
-                    ->money('ARS')
+                    ->money('ARS', locale: 'es_AR')
                     ->sortable(),
                 TextColumn::make('created_at')
                     ->dateTime()

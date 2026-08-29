@@ -35,6 +35,30 @@ class PaymentAllocation extends Model
     }
 
     /**
+     * Imputar o desimputar un pago cambia cuánto debe el proveedor: cada
+     * alta/edición/baja de una allocation sobre una Purchase recalcula su
+     * saldo y el balance del proveedor. Es el único punto que cubre todos
+     * los caminos de escritura (el RelationManager de Pagos es genérico y
+     * no tiene hooks propios, y Purchase::anular() también borra
+     * allocations en su loop de reversión).
+     */
+    protected static function booted(): void
+    {
+        static::saved(fn (PaymentAllocation $allocation) => $allocation->syncPurchaseBalance());
+        static::deleted(fn (PaymentAllocation $allocation) => $allocation->syncPurchaseBalance());
+    }
+
+    private function syncPurchaseBalance(): void
+    {
+        if (! $this->allocatable instanceof Purchase) {
+            return;
+        }
+
+        $this->allocatable->recalcularSaldo();
+        $this->allocatable->supplier->recalcularBalance();
+    }
+
+    /**
      * @return BelongsTo<Payment, $this>
      */
     public function payment(): BelongsTo

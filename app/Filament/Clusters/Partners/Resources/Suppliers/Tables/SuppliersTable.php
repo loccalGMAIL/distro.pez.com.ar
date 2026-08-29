@@ -37,15 +37,19 @@ class SuppliersTable
                     ->searchable()
                     ->toggleable(),
                 TextColumn::make('condicion_pago')
-                    ->badge(),
+                    ->badge()
+                    ->toggleable(),
                 TextColumn::make('dias_pago')
                     ->numeric()
-                    ->sortable(),
+                    ->sortable()
+                    ->toggleable(),
                 TextColumn::make('balance')
-                    ->money('ARS')
-                    ->sortable(),
+                    ->money('ARS', locale: 'es_AR')
+                    ->sortable()
+                    ->toggleable(),
                 IconColumn::make('activo')
-                    ->boolean(),
+                    ->boolean()
+                    ->toggleable(),
                 TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()

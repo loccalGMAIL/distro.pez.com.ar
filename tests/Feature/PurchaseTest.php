@@ -6,6 +6,7 @@ use App\Models\Product;
 use App\Models\Purchase;
 use App\Models\PurchaseLine;
 use App\Models\StockMovement;
+use App\Models\Supplier;
 use App\Models\Warehouse;
 
 test('aumentarStock creates one positive compra movement per line, updates costo_ultimo and is idempotent', function () {
@@ -39,6 +40,57 @@ test('confirmar sets status to confirmada and increases stock', function () {
 
     expect($purchase->fresh()->status)->toBe('confirmada');
     expect(StockMovement::where('source_type', Purchase::class)->where('source_id', $purchase->id)->where('type', 'compra')->count())->toBe(1);
+});
+
+test('confirmar sets saldo to total and generates debt on the supplier balance', function () {
+    $supplier = Supplier::factory()->create(['balance' => 0]);
+    $purchase = Purchase::factory()->create(['status' => 'borrador', 'supplier_id' => $supplier->id, 'total' => 1000]);
+
+    $purchase->confirmar();
+
+    expect((float) $purchase->fresh()->saldo)->toBe(1000.0);
+    expect((float) $supplier->fresh()->balance)->toBe(1000.0);
+});
+
+test('anular zeroes out saldo and removes the debt from the supplier balance', function () {
+    $supplier = Supplier::factory()->create(['balance' => 0]);
+    $purchase = Purchase::factory()->create(['status' => 'borrador', 'supplier_id' => $supplier->id, 'total' => 1000]);
+    $purchase->confirmar();
+
+    expect((float) $supplier->fresh()->balance)->toBe(1000.0);
+
+    $purchase->anular();
+
+    expect((float) $purchase->fresh()->saldo)->toBe(0.0);
+    expect((float) $supplier->fresh()->balance)->toBe(0.0);
+});
+
+test('a partial payment reduces saldo and supplier balance, and anular restores both to zero', function () {
+    $supplier = Supplier::factory()->create(['balance' => 0]);
+    $purchase = Purchase::factory()->create(['status' => 'borrador', 'supplier_id' => $supplier->id, 'total' => 1000]);
+    $purchase->confirmar();
+
+    $payment = Payment::factory()->create([
+        'party_type' => Supplier::class,
+        'party_id' => $supplier->id,
+        'monto' => 400,
+        'sin_imputar' => 0,
+    ]);
+    PaymentAllocation::factory()->create([
+        'payment_id' => $payment->id,
+        'allocatable_type' => Purchase::class,
+        'allocatable_id' => $purchase->id,
+        'monto' => 400,
+    ]);
+
+    expect((float) $purchase->fresh()->saldo)->toBe(600.0);
+    expect((float) $supplier->fresh()->balance)->toBe(600.0);
+
+    $purchase->anular();
+
+    expect((float) $purchase->fresh()->saldo)->toBe(0.0);
+    expect((float) $supplier->fresh()->balance)->toBe(0.0);
+    expect((float) $payment->fresh()->sin_imputar)->toBe(400.0);
 });
 
 test('anular on a confirmed purchase reverses stock and sets status to anulada without touching costo_ultimo', function () {
