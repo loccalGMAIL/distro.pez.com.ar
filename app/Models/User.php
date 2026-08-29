@@ -118,6 +118,14 @@ class User extends Authenticatable implements FilamentUser
     }
 
     /**
+     * @return HasMany<UserTableColumnPreference, $this>
+     */
+    public function tableColumnPreferences(): HasMany
+    {
+        return $this->hasMany(UserTableColumnPreference::class);
+    }
+
+    /**
      * Empleados con el rol "administrativo", para el selector del fichaje
      * manual y el informe. No usa el scope role() de Spatie porque ese
      * lanza una excepción si el rol todavía no existe (por ejemplo, antes

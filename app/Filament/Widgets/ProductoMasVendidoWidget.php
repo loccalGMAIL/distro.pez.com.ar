@@ -3,11 +3,14 @@
 namespace App\Filament\Widgets;
 
 use App\Models\SaleLine;
+use BezhanSalleh\FilamentShield\Traits\HasWidgetShield;
 use Filament\Widgets\Widget;
 use Illuminate\Support\Facades\DB;
 
 class ProductoMasVendidoWidget extends Widget
 {
+    use HasWidgetShield;
+
     protected static ?int $sort = 6;
 
     protected string $view = 'filament.widgets.producto-mas-vendido-widget';

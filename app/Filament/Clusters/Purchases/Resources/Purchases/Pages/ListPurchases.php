@@ -4,6 +4,7 @@ namespace App\Filament\Clusters\Purchases\Resources\Purchases\Pages;
 
 use App\Filament\Clusters\Purchases\Pages\ScanPurchase;
 use App\Filament\Clusters\Purchases\Resources\Purchases\PurchaseResource;
+use App\Filament\Concerns\PersistsTableColumnsForUser;
 use Filament\Actions\Action;
 use Filament\Actions\CreateAction;
 use Filament\Resources\Pages\ListRecords;
@@ -12,6 +13,8 @@ use Filament\Support\Icons\Heroicon;
 
 class ListPurchases extends ListRecords
 {
+    use PersistsTableColumnsForUser;
+
     protected static string $resource = PurchaseResource::class;
 
     protected function getHeaderActions(): array
