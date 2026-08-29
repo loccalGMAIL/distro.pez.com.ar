@@ -2,6 +2,7 @@
 
 namespace App\Filament\Clusters\Purchases\Resources\Purchases\Schemas;
 
+use App\Filament\Forms\Components\NativeFileButton;
 use App\Models\Product;
 use App\Models\Supplier;
 use App\Models\Warehouse;
@@ -9,7 +10,6 @@ use Carbon\Carbon;
 use Closure;
 use Filament\Actions\Action;
 use Filament\Forms\Components\DatePicker;
-use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Repeater\TableColumn;
@@ -26,6 +26,7 @@ use Filament\Schemas\Schema;
 use Filament\Support\Enums\Alignment;
 use Filament\Support\Icons\Heroicon;
 use Filament\Support\RawJs;
+use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 
 class PurchaseForm
 {
@@ -92,6 +93,28 @@ class PurchaseForm
             DatePicker::make('vence_at')
                 ->label('Vence'),
 
+            Hidden::make('archivo_path'),
+            NativeFileButton::make('archivo_upload')
+                ->label('Comprobante')
+                ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp', 'application/pdf'])
+                ->dehydrated(false)
+                ->live()
+                ->afterStateUpdated(function ($state, Set $set) {
+                    if (! $state instanceof TemporaryUploadedFile) {
+                        return;
+                    }
+
+                    $path = $state->store('purchases', 'local');
+
+                    if (is_string($path)) {
+                        $set('archivo_path', $path);
+                    }
+                }),
+            TextEntry::make('archivo_path_display')
+                ->hiddenLabel()
+                ->state('Comprobante cargado ✓')
+                ->visible(fn (Get $get): bool => filled($get('archivo_path'))),
+
             Section::make()
                 ->collapsible()
                 ->collapsed()
@@ -112,11 +135,6 @@ class PurchaseForm
                         ->searchable()
                         ->preload()
                         ->default(fn () => auth()->id()),
-                    FileUpload::make('archivo_path')
-                        ->label('Factura del proveedor')
-                        ->disk('local')
-                        ->directory('purchases')
-                        ->columnSpanFull(),
                     Textarea::make('observaciones')
                         ->columnSpanFull(),
                 ]),
@@ -234,7 +252,10 @@ class PurchaseForm
                     ->numeric()
                     ->default(1)
                     ->live()
-                    ->extraInputAttributes(['style' => 'font-size: 0.75rem;'])
+                    ->extraInputAttributes([
+                        'style' => 'font-size: 0.75rem;',
+                        'x-on:keydown.enter.prevent' => self::addLineOnEnterJs(),
+                    ])
                     ->afterStateUpdated(fn (Get $get, Set $set) => self::recalculateLine($get, $set)),
                 TextInput::make('costo_unit')
                     ->hiddenLabel()
@@ -243,7 +264,10 @@ class PurchaseForm
                     ->default(0)
                     ->live()
                     ->prefix('$')
-                    ->extraInputAttributes(['style' => 'text-align: right; font-size: 0.75rem;'])
+                    ->extraInputAttributes([
+                        'style' => 'text-align: right; font-size: 0.75rem;',
+                        'x-on:keydown.enter.prevent' => self::addLineOnEnterJs(),
+                    ])
                     ->afterStateUpdated(fn (Get $get, Set $set) => self::recalculateLine($get, $set)),
                 Hidden::make('subtotal')
                     ->default(0),
@@ -258,6 +282,32 @@ class PurchaseForm
             ->required()
             ->minItems(1)
             ->columnSpanFull();
+    }
+
+    /**
+     * JS del atajo "Enter agrega producto": dispara un click nativo sobre el
+     * botón "Agregar producto" del table-repeater (`.fi-fo-table-repeater-add
+     * button`, ver `Filament\Forms\Components\Repeater::tableRepeaterEmbeddedHtml()`
+     * en el vendor) en vez de invocar el método de Livewire a mano — así no
+     * depende de nombres de acción/mount internos de Filament y sigue
+     * funcionando si esos cambian entre versiones. Después de que Livewire
+     * termina el request (`$wire.$nextTick`, ya esperado por Alpine dentro
+     * del morph de Livewire), enfoca el buscador de producto de la ÚLTIMA
+     * fila para poder seguir tipeando sin usar el mouse.
+     */
+    private static function addLineOnEnterJs(): string
+    {
+        return <<<'JS'
+            (() => {
+                const repeater = $el.closest('.fi-fo-table-repeater');
+                if (! repeater) { return; }
+                repeater.querySelector('.fi-fo-table-repeater-add button')?.click();
+                $wire.$nextTick(() => {
+                    const rows = repeater.querySelectorAll('tbody tr');
+                    rows[rows.length - 1]?.querySelector('input')?.focus();
+                });
+            })()
+            JS;
     }
 
     /**

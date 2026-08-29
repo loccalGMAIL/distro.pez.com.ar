@@ -100,6 +100,7 @@ class PurchasesTable
                 ViewAction::make()
                     ->iconButton(),
                 EditAction::make()
+                    ->iconButton()
                     ->visible(fn (Purchase $record): bool => $record->status === 'borrador'),
                 Action::make('confirmar')
                     ->label('Confirmar')
