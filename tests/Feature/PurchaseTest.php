@@ -65,6 +65,37 @@ test('anular on a confirmed purchase reverses stock and sets status to anulada w
     expect((float) $product->fresh()->costo_ultimo)->toBe(200.0);
 });
 
+test('anular clears numero so the same comprobante can be reloaded, but keeps archivo_path', function () {
+    $purchase = Purchase::factory()->create([
+        'status' => 'confirmada',
+        'numero' => '0001-00001234',
+        'archivo_path' => 'purchases/factura.pdf',
+    ]);
+
+    $purchase->anular();
+
+    $fresh = $purchase->fresh();
+    expect($fresh->numero)->toBeNull();
+    expect($fresh->archivo_path)->toBe('purchases/factura.pdf');
+});
+
+test('anular allows recreating a purchase with the same supplier, tipo_comprobante and numero', function () {
+    $purchase = Purchase::factory()->create([
+        'status' => 'confirmada',
+        'numero' => '0001-00001234',
+    ]);
+
+    $purchase->anular();
+
+    $nueva = Purchase::factory()->create([
+        'supplier_id' => $purchase->supplier_id,
+        'tipo_comprobante' => $purchase->tipo_comprobante,
+        'numero' => '0001-00001234',
+    ]);
+
+    expect($nueva->exists)->toBeTrue();
+});
+
 test('anular on a draft purchase with no stock movements just voids it', function () {
     $purchase = Purchase::factory()->create(['status' => 'borrador']);
 

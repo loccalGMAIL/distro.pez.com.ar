@@ -152,6 +152,13 @@ class Purchase extends Model
      * ni el costo_ultimo ya actualizado en los productos-, y revierte
      * cualquier pago imputado a esta compra para que la cuenta del
      * proveedor quede consistente. Idempotente.
+     *
+     * También limpia `numero`: es único por (supplier_id, tipo_comprobante,
+     * numero), así que si se deja el número de una compra anulada, cargar de
+     * nuevo el mismo comprobante (por error de carga, por ejemplo) choca con
+     * esa fila muerta. `archivo_path` se deja intacto a propósito -sigue
+     * siendo la evidencia del comprobante físico para auditar después-, solo
+     * se limpia el campo que participa del unique.
      */
     public function anular(): void
     {
@@ -181,6 +188,7 @@ class Purchase extends Model
             });
 
             $this->status = 'anulada';
+            $this->numero = null;
             $this->save();
         });
     }
