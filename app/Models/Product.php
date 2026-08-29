@@ -11,6 +11,9 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
 
+/**
+ * @property-read float|string|null $stock_total Suma de stock_movements.quantity, agregada por ProductsTable::configure() vía withSum(). No existe fuera de ese contexto.
+ */
 class Product extends Model
 {
     /** @use HasFactory<ProductFactory> */

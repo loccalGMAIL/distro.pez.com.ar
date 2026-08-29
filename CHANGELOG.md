@@ -8,6 +8,30 @@ y este proyecto sigue [Semantic Versioning](https://semver.org/lang/es/) (ver
 
 ## [Unreleased]
 
+## [0.7.3] - 2026-08-29
+
+### Added
+
+- Columna "Stock" en la tabla de Productos: muestra el total actual sumado
+  entre depósitos (con tooltip de desglose por depósito) y resalta en rojo
+  los productos en o por debajo de su stock mínimo. Se agrega una acción
+  rápida "Ajustar stock" en cada fila para cargar una corrección sin salir
+  de la pantalla.
+- Las columnas que se ocultan/muestran en las tablas (Productos, Compras,
+  Ventas, Listas de precio, Depósitos, Clientes, Proveedores, Gastos, Pagos,
+  Usuarios y Actividad) ahora se guardan por usuario y persisten después de
+  cerrar sesión, en vez de perderse en cada logout.
+- El dashboard ahora se puede personalizar por rol: desde Configuración →
+  Roles → pestaña "Widgets" se elige qué cards ve cada perfil (antes solo el
+  widget de fichaje respetaba esto; el resto se mostraba a cualquiera con
+  acceso al panel).
+
+### Changed
+
+- El recurso "Movimientos de stock" se muda del cluster Compras al cluster
+  Catálogo, junto a Productos y Depósitos, ya que no es exclusivo de
+  compras.
+
 ## [0.7.2] - 2026-08-28
 
 ### Added

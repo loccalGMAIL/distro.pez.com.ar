@@ -3,10 +3,13 @@
 namespace App\Filament\Widgets;
 
 use App\Models\Sale;
+use BezhanSalleh\FilamentShield\Traits\HasWidgetShield;
 use Filament\Widgets\Widget;
 
 class VentasDelMesWidget extends Widget
 {
+    use HasWidgetShield;
+
     protected static ?int $sort = 5;
 
     protected string $view = 'filament.widgets.ventas-del-mes-widget';

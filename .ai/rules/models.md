@@ -1,6 +1,7 @@
 ---
 paths:
   - 'app/Models/{Product,PriceList,Sale,Customer}.php'
+  - 'app/Models/{Purchase,PurchaseLine,Supplier,SupplierProductLink}.php'
 ---
 
 # Models
@@ -17,3 +18,6 @@ Cada `PriceList` tiene un `porcentaje` (markup, o descuento si es negativo) y un
 `Sale` tiene su propio `price_list_id` nullable (no el del cliente): se autocompleta desde `customer_id` vía `afterStateUpdated` en `SaleForm`, pero es pisable a mano — cubre venta de mostrador sin cliente. `LinesRelationManager` de Sales usa `$sale->price_list_id` (no `$sale->customer->price_list_id`) para resolver `Product::precioParaLista()` al elegir producto en una línea.
 
 `Product::precioParaLista(?int $priceListId)`: sin lista (null o no encontrada) devuelve `costo_ultimo` formateado sin recargo — ya no hay fallback a un precio manual.
+
+## Anular limpia numero (no archivo_path) para evitar choque con el unique
+`Purchase::anular()` pone `numero = null` antes de guardar, además de revertir stock y pagos. Motivo: `numero` es único por (supplier_id, tipo_comprobante, numero) — si se dejara el número de una compra anulada, volver a cargar el mismo comprobante (por error de tipeo corregido, o para recargarlo bien) chocaría contra esa fila muerta. `archivo_path` se deja intacto a propósito: sigue sirviendo de evidencia/auditoría del comprobante físico aunque la compra esté anulada. Los `motivo` de los `stock_movement` de reversión usan `$this->numero` DENTRO del loop, antes de nulear el campo — no mover el `$this->numero = null` antes de esas líneas o los motivos quedan vacíos.

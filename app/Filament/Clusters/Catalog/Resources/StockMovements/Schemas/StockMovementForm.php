@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Filament\Clusters\Purchases\Resources\StockMovements\Schemas;
+namespace App\Filament\Clusters\Catalog\Resources\StockMovements\Schemas;
 
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
