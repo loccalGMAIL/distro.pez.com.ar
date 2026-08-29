@@ -29,6 +29,7 @@ class Purchase extends Model
         'subtotal',
         'descuento',
         'iva',
+        'percepciones',
         'total',
         'saldo',
         'status',
@@ -45,6 +46,7 @@ class Purchase extends Model
             'subtotal' => 'decimal:2',
             'descuento' => 'decimal:2',
             'iva' => 'decimal:2',
+            'percepciones' => 'decimal:2',
             'total' => 'decimal:2',
             'saldo' => 'decimal:2',
             'ocr_data' => 'array',
@@ -86,6 +88,14 @@ class Purchase extends Model
     public function lines(): HasMany
     {
         return $this->hasMany(PurchaseLine::class);
+    }
+
+    /**
+     * @return HasMany<PurchasePerception, $this>
+     */
+    public function perceptions(): HasMany
+    {
+        return $this->hasMany(PurchasePerception::class);
     }
 
     /**

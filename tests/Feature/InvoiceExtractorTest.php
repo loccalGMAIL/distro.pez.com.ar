@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\PerceptionType;
 use App\Models\Product;
 use App\Services\InvoiceExtractor;
 use Illuminate\Support\Facades\Http;
@@ -146,6 +147,48 @@ test('extract returns null fecha instead of guessing an implausible format', fun
     $result = app(InvoiceExtractor::class)->extract($this->fakeImagePath, 'image/jpeg');
 
     expect($result['fecha'])->toBeNull();
+});
+
+test('extract normalizes percepciones and validates matched_perception_type_id against the active catalog', function () {
+    $perceptionType = PerceptionType::factory()->create(['activo' => true]);
+
+    fakeClaudeResponse([
+        'proveedor' => null, 'cuit' => null, 'tipo_comprobante' => null,
+        'punto_venta' => null, 'numero' => null, 'fecha' => null, 'vencimiento' => null,
+        'subtotal' => null, 'iva' => null, 'total' => null, 'lineas' => [],
+        'percepciones' => [
+            [
+                'descripcion' => 'Percepcion IIBB Buenos Aires',
+                'monto' => '1.234,56',
+                'matched_perception_type_id' => $perceptionType->id,
+            ],
+            [
+                'descripcion' => 'Percepción inventada',
+                'monto' => '100',
+                'matched_perception_type_id' => 999999,
+            ],
+        ],
+    ]);
+
+    $result = app(InvoiceExtractor::class)->extract($this->fakeImagePath, 'image/jpeg');
+
+    expect($result['percepciones'][0]['monto'])->toBe(1234.56);
+    expect($result['percepciones'][0]['matched_perception_type_id'])->toBe($perceptionType->id);
+    expect($result['percepciones'][0]['description_key'])->toBe('percepcion iibb buenos aires');
+    expect($result['percepciones'][0]['descripcion'])->toBe('Percepcion IIBB Buenos Aires');
+    expect($result['percepciones'][1]['matched_perception_type_id'])->toBeNull();
+});
+
+test('extract defaults percepciones to an empty array when the AI response omits the key', function () {
+    fakeClaudeResponse([
+        'proveedor' => null, 'cuit' => null, 'tipo_comprobante' => null,
+        'punto_venta' => null, 'numero' => null, 'fecha' => null, 'vencimiento' => null,
+        'subtotal' => null, 'iva' => null, 'total' => null, 'lineas' => [],
+    ]);
+
+    $result = app(InvoiceExtractor::class)->extract($this->fakeImagePath, 'image/jpeg');
+
+    expect($result['percepciones'])->toBe([]);
 });
 
 test('extract throws a friendly error when the API key is missing', function () {

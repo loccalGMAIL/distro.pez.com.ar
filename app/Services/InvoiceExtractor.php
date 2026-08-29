@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\PerceptionType;
 use App\Models\Product;
 use App\Models\SupplierProductLink;
 use Illuminate\Support\Facades\Http;
@@ -9,8 +10,10 @@ use RuntimeException;
 
 /**
  * @phpstan-type CatalogItem array{id: int, nombre: string, barcode: string|null, categoria: string|null}
+ * @phpstan-type PerceptionCatalogItem array{id: int, nombre: string}
  * @phpstan-type InvoiceLine array{descripcion: string, description_key: string, cantidad: float, unidad: string, precio_unitario: float, subtotal: float, matched_product_id: int|null, consistente: bool}
- * @phpstan-type InvoiceExtraction array{proveedor: mixed, cuit: mixed, tipo_comprobante: mixed, punto_venta: mixed, numero: string|null, fecha: string|null, vencimiento: string|null, subtotal: float|null, iva: float|null, total: float|null, lineas: array<int, InvoiceLine>}
+ * @phpstan-type InvoicePerception array{descripcion: string, description_key: string, monto: float, matched_perception_type_id: int|null}
+ * @phpstan-type InvoiceExtraction array{proveedor: mixed, cuit: mixed, tipo_comprobante: mixed, punto_venta: mixed, numero: string|null, fecha: string|null, vencimiento: string|null, subtotal: float|null, iva: float|null, total: float|null, lineas: array<int, InvoiceLine>, percepciones: array<int, InvoicePerception>}
  */
 class InvoiceExtractor
 {
@@ -61,6 +64,7 @@ class InvoiceExtractor
 
         $model = $this->model ?? config('services.anthropic.model');
         $catalog = $this->activeCatalog();
+        $perceptionCatalog = $this->activePerceptionCatalog();
 
         $response = Http::withHeaders([
             'x-api-key' => $apiKey,
@@ -75,7 +79,7 @@ class InvoiceExtractor
                     'role' => 'user',
                     'content' => [
                         $this->documentBlock($absolutePath, $mime),
-                        ['type' => 'text', 'text' => $this->prompt($catalog)],
+                        ['type' => 'text', 'text' => $this->prompt($catalog, $perceptionCatalog)],
                     ],
                 ]],
             ]);
@@ -88,7 +92,11 @@ class InvoiceExtractor
         $textBlock = collect(is_array($content) ? $content : [])->firstWhere('type', 'text');
         $text = is_array($textBlock) ? (string) ($textBlock['text'] ?? '') : '';
 
-        return $this->normalize($this->parseJson($text), array_column($catalog, 'id'));
+        return $this->normalize(
+            $this->parseJson($text),
+            array_column($catalog, 'id'),
+            array_column($perceptionCatalog, 'id'),
+        );
     }
 
     /**
@@ -133,14 +141,34 @@ class InvoiceExtractor
     }
 
     /**
-     * @param  array<int, CatalogItem>  $catalog
+     * @return array<int, PerceptionCatalogItem>
      */
-    private function prompt(array $catalog): string
+    private function activePerceptionCatalog(): array
+    {
+        return PerceptionType::query()
+            ->where('activo', true)
+            ->get(['id', 'nombre'])
+            ->map(fn (PerceptionType $perceptionType): array => [
+                'id' => $perceptionType->id,
+                'nombre' => $perceptionType->nombre,
+            ])
+            ->all();
+    }
+
+    /**
+     * @param  array<int, CatalogItem>  $catalog
+     * @param  array<int, PerceptionCatalogItem>  $perceptionCatalog
+     */
+    private function prompt(array $catalog, array $perceptionCatalog): string
     {
         $catalogJson = collect($catalog)
             ->map(fn (array $p): string => "{$p['id']}: {$p['nombre']}"
                 .($p['barcode'] ? " (código {$p['barcode']})" : '')
                 .($p['categoria'] ? " [{$p['categoria']}]" : ''))
+            ->implode("\n");
+
+        $perceptionCatalogJson = collect($perceptionCatalog)
+            ->map(fn (array $p): string => "{$p['id']}: {$p['nombre']}")
             ->implode("\n");
 
         return <<<PROMPT
@@ -154,6 +182,11 @@ class InvoiceExtractor
             sugerir a qué producto corresponde cada línea, NUNCA inventes un id que no
             esté en esta lista:
             {$catalogJson}
+
+            Catálogo de tipos de percepción existentes (id: nombre) — usalo únicamente
+            para sugerir a qué tipo corresponde cada percepción detectada, NUNCA inventes
+            un id que no esté en esta lista:
+            {$perceptionCatalogJson}
 
             Reglas importantes:
             - Fechas: en Argentina se escriben DD/MM/AAAA (día primero). "02/06/2026" es
@@ -173,6 +206,12 @@ class InvoiceExtractor
             - matched_product_id: solo completalo si estás razonablemente seguro de que
               la línea corresponde a ese producto del catálogo. Si no hay match claro,
               null.
+            - Percepciones: son montos adicionales que el proveedor factura por separado
+              del IVA (ej. "Perc. IIBB Bs As", "Percepción RG 2408", "Perc. IVA"). NO
+              confundas una percepción con el IVA de la factura ni con el descuento. Si
+              la factura no tiene ninguna percepción, devolvé "percepciones": [].
+            - matched_perception_type_id: igual que matched_product_id, pero contra el
+              catálogo de tipos de percepción. Si no hay match claro, null.
 
             Devolvé ÚNICAMENTE este JSON (sin texto adicional, sin fences de markdown):
             {
@@ -194,6 +233,13 @@ class InvoiceExtractor
                   "precio_unitario": string,
                   "subtotal": string,
                   "matched_product_id": number|null
+                }
+              ],
+              "percepciones": [
+                {
+                  "descripcion": string,
+                  "monto": string,
+                  "matched_perception_type_id": number|null
                 }
               ]
             }
@@ -221,9 +267,10 @@ class InvoiceExtractor
     /**
      * @param  array<string, mixed>  $data
      * @param  array<int, int>  $catalogIds
+     * @param  array<int, int>  $perceptionCatalogIds
      * @return InvoiceExtraction
      */
-    private function normalize(array $data, array $catalogIds): array
+    private function normalize(array $data, array $catalogIds, array $perceptionCatalogIds): array
     {
         $lines = collect($this->rawLines($data))
             ->map(function (array $line) use ($catalogIds): array {
@@ -247,6 +294,21 @@ class InvoiceExtractor
             ->values()
             ->all();
 
+        $percepciones = collect($this->rawPercepciones($data))
+            ->map(function (array $percepcion) use ($perceptionCatalogIds): array {
+                $descripcion = (string) ($percepcion['descripcion'] ?? '');
+                $matchedId = $percepcion['matched_perception_type_id'] ?? null;
+
+                return [
+                    'descripcion' => $descripcion,
+                    'description_key' => SupplierProductLink::normalizeDescription($descripcion),
+                    'monto' => $this->parseDecimal($percepcion['monto'] ?? null) ?? 0.0,
+                    'matched_perception_type_id' => in_array($matchedId, $perceptionCatalogIds, true) ? (int) $matchedId : null,
+                ];
+            })
+            ->values()
+            ->all();
+
         return [
             'proveedor' => $data['proveedor'] ?? null,
             'cuit' => $data['cuit'] ?? null,
@@ -259,6 +321,7 @@ class InvoiceExtractor
             'iva' => $this->parseDecimal($data['iva'] ?? null),
             'total' => $this->parseDecimal($data['total'] ?? null),
             'lineas' => $lines,
+            'percepciones' => $percepciones,
         ];
     }
 
@@ -278,6 +341,25 @@ class InvoiceExtractor
         }
 
         return array_values(array_filter($lines, is_array(...)));
+    }
+
+    /**
+     * Las percepciones tal cual vinieron en el JSON de la IA, descartando lo
+     * que no sea un objeto. Si la clave "percepciones" no está presente
+     * (respuesta vieja o factura sin percepciones), devuelve [].
+     *
+     * @param  array<string, mixed>  $data
+     * @return array<int, array<string, mixed>>
+     */
+    private function rawPercepciones(array $data): array
+    {
+        $percepciones = $data['percepciones'] ?? null;
+
+        if (! is_array($percepciones)) {
+            return [];
+        }
+
+        return array_values(array_filter($percepciones, is_array(...)));
     }
 
     private function composeNumero(?string $puntoVenta, ?string $numero): ?string

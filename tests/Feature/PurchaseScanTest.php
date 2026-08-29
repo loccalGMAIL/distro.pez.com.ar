@@ -1,9 +1,11 @@
 <?php
 
 use App\Filament\Clusters\Purchases\Pages\ScanPurchase;
+use App\Models\PerceptionType;
 use App\Models\Product;
 use App\Models\Purchase;
 use App\Models\Supplier;
+use App\Models\SupplierPerceptionLink;
 use App\Models\SupplierProductLink;
 use App\Models\User;
 use App\Models\Warehouse;
@@ -117,6 +119,102 @@ test('confirming after a scan creates a draft purchase with its lines and rememb
     expect(SupplierProductLink::where('supplier_id', $supplier->id)->where('product_id', $product->id)->exists())->toBeTrue();
 });
 
+test('capturing an invoice with a percepcion prefills the perceptions repeater', function () {
+    Supplier::factory()->create(['razon_social' => 'Bebidas Andinas S.A.', 'activo' => true]);
+    $product = Product::factory()->create(['activo' => true, 'costo_ultimo' => 100]);
+    $perceptionType = PerceptionType::factory()->create(['nombre' => 'Percepción IIBB Buenos Aires', 'activo' => true]);
+
+    fakeClaudeExtraction([
+        'proveedor' => 'Bebidas Andinas S.A.',
+        'cuit' => null,
+        'tipo_comprobante' => 'factura_a',
+        'punto_venta' => '0001',
+        'numero' => '00000042',
+        'fecha' => '2026-06-02',
+        'vencimiento' => null,
+        'subtotal' => '1000',
+        'iva' => '210',
+        'total' => '1360',
+        'lineas' => [
+            [
+                'descripcion' => 'Producto de prueba',
+                'cantidad' => '10',
+                'unidad' => 'u',
+                'precio_unitario' => '100',
+                'subtotal' => '1000',
+                'matched_product_id' => $product->id,
+            ],
+        ],
+        'percepciones' => [
+            [
+                'descripcion' => 'Perc. IIBB Bs As',
+                'monto' => '150',
+                'matched_perception_type_id' => $perceptionType->id,
+            ],
+        ],
+    ]);
+
+    Livewire::test(ScanPurchase::class)
+        ->fillForm(['upload' => UploadedFile::fake()->image('factura.jpg', 800, 600)])
+        ->goToNextWizardStep()
+        ->assertHasNoErrors()
+        ->assertSet('data.perceptions.0.perception_type_id', $perceptionType->id)
+        ->assertSet('data.perceptions.0.monto', 150.0)
+        ->assertSet('data.percepciones', 150.0);
+});
+
+test('confirming after a scan with a percepcion creates a PurchasePerception and remembers the link', function () {
+    $supplier = Supplier::factory()->create(['razon_social' => 'Bebidas Andinas S.A.', 'activo' => true]);
+    $product = Product::factory()->create(['activo' => true, 'costo_ultimo' => 100]);
+    $perceptionType = PerceptionType::factory()->create(['nombre' => 'Percepción IIBB Buenos Aires', 'activo' => true]);
+
+    fakeClaudeExtraction([
+        'proveedor' => 'Bebidas Andinas S.A.',
+        'cuit' => null,
+        'tipo_comprobante' => 'factura_a',
+        'punto_venta' => '0001',
+        'numero' => '00000042',
+        'fecha' => '2026-06-02',
+        'vencimiento' => null,
+        'subtotal' => '1000',
+        'iva' => '210',
+        'total' => '1360',
+        'lineas' => [
+            [
+                'descripcion' => 'Producto de prueba',
+                'cantidad' => '10',
+                'unidad' => 'u',
+                'precio_unitario' => '100',
+                'subtotal' => '1000',
+                'matched_product_id' => $product->id,
+            ],
+        ],
+        'percepciones' => [
+            [
+                'descripcion' => 'Perc. IIBB Bs As',
+                'monto' => '150',
+                'matched_perception_type_id' => $perceptionType->id,
+            ],
+        ],
+    ]);
+
+    Livewire::test(ScanPurchase::class)
+        ->fillForm(['upload' => UploadedFile::fake()->image('factura.jpg', 800, 600)])
+        ->goToNextWizardStep()
+        ->call('confirmar');
+
+    $purchase = Purchase::first();
+
+    expect($purchase)->not->toBeNull();
+    expect($purchase->perceptions)->toHaveCount(1);
+    expect((float) $purchase->perceptions->first()->monto)->toBe(150.0);
+    expect($purchase->perceptions->first()->perception_type_id)->toBe($perceptionType->id);
+    expect((float) $purchase->percepciones)->toBe(150.0);
+    expect((float) $purchase->total)->toBe(1000.0 - 0.0 + 210.0 + 150.0);
+
+    expect(SupplierPerceptionLink::where('supplier_id', $supplier->id)->where('perception_type_id', $perceptionType->id)->exists())->toBeTrue();
+});
+
 test('when no supplier matches, extraction suggests creating one prefilled with the detected name', function () {
     $product = Product::factory()->create(['activo' => true, 'costo_ultimo' => 100]);
 
@@ -206,6 +304,52 @@ test('when a line has no product match, extraction suggests creating one prefill
     expect($newProduct->base_unit)->toBe('kg');
     expect((float) $newProduct->costo_ultimo)->toBe(250.0);
     $component->assertSet('data.lineas.0.product_id', (string) $newProduct->id);
+});
+
+test('when a percepcion has no match, extraction suggests creating one prefilled with the detected description', function () {
+    Supplier::factory()->create(['razon_social' => 'Bebidas Andinas S.A.', 'activo' => true]);
+    $product = Product::factory()->create(['activo' => true, 'costo_ultimo' => 100]);
+
+    fakeClaudeExtraction([
+        'proveedor' => 'Bebidas Andinas S.A.', 'cuit' => null, 'tipo_comprobante' => 'factura_a',
+        'punto_venta' => null, 'numero' => null, 'fecha' => '2026-06-02', 'vencimiento' => null,
+        'subtotal' => null, 'iva' => null, 'total' => null,
+        'lineas' => [
+            [
+                'descripcion' => 'Producto de prueba',
+                'cantidad' => '1',
+                'unidad' => 'u',
+                'precio_unitario' => '100',
+                'subtotal' => '100',
+                'matched_product_id' => $product->id,
+            ],
+        ],
+        'percepciones' => [
+            [
+                'descripcion' => 'Perc. IIBB Bs As RG 3337',
+                'monto' => '150',
+                'matched_perception_type_id' => null,
+            ],
+        ],
+    ]);
+
+    $component = Livewire::test(ScanPurchase::class)
+        ->fillForm(['upload' => UploadedFile::fake()->image('factura.jpg', 800, 600)])
+        ->goToNextWizardStep()
+        ->assertSet('data.perceptions.0.perception_type_id', null);
+
+    $component->mountFormComponentAction('perceptions.0.perception_type_id', 'createOption')
+        ->assertFormComponentActionDataSet([
+            'nombre' => 'Perc. IIBB Bs As RG 3337',
+        ]);
+
+    $component->callMountedFormComponentAction()
+        ->assertHasNoFormComponentActionErrors();
+
+    $newPerceptionType = PerceptionType::where('nombre', 'Perc. IIBB Bs As RG 3337')->first();
+
+    expect($newPerceptionType)->not->toBeNull();
+    $component->assertSet('data.perceptions.0.perception_type_id', (string) $newPerceptionType->id);
 });
 
 test('confirming without any line matched to a product shows an error and creates nothing', function () {

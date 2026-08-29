@@ -20,6 +20,7 @@ $resources = [
     'settings/users',
     'settings/activity-logs',
     'settings/time-entries',
+    'settings/perception-types',
 ];
 
 // Ventas y Compras no tienen página /create propia (se crean por modal desde

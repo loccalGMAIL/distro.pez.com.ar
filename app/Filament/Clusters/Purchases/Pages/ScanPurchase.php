@@ -5,12 +5,14 @@ namespace App\Filament\Clusters\Purchases\Pages;
 use App\Filament\Clusters\Catalog\Resources\Products\Schemas\ProductForm;
 use App\Filament\Clusters\Purchases\PurchasesCluster;
 use App\Filament\Clusters\Purchases\Resources\Purchases\PurchaseResource;
+use App\Models\PerceptionType;
 use App\Models\Product;
 use App\Models\Purchase;
 use App\Models\Supplier;
 use App\Models\Warehouse;
 use App\Services\InvoiceExtractor;
 use App\Services\InvoiceImagePreparer;
+use App\Services\PerceptionLinkMemory;
 use App\Services\ProductLinkMemory;
 use App\Services\SupplierMatcher;
 use BackedEnum;
@@ -82,6 +84,7 @@ class ScanPurchase extends Page
             'descuento' => 0,
             'iva' => 0,
             'lineas' => [],
+            'perceptions' => [],
         ]);
     }
 
@@ -274,6 +277,57 @@ class ScanPurchase extends Page
                 ->minItems(1)
                 ->columnSpanFull(),
 
+            Repeater::make('perceptions')
+                ->label('Percepciones')
+                ->live()
+                ->afterStateUpdated(fn (Get $get, Set $set) => $this->recalculateTotals($get, $set))
+                ->table([
+                    TableColumn::make('Detectado por la IA'),
+                    TableColumn::make('Tipo'),
+                    TableColumn::make('Monto')->width('120px')->alignment(Alignment::End),
+                ])
+                ->compact()
+                ->schema([
+                    Hidden::make('description_key'),
+                    TextInput::make('descripcion')
+                        ->hiddenLabel()
+                        ->disabled()
+                        ->dehydrated(),
+                    Select::make('perception_type_id')
+                        ->label('Tipo')
+                        ->hiddenLabel()
+                        ->searchable()
+                        ->options(fn (): array => PerceptionType::query()
+                            ->where('activo', true)
+                            ->pluck('nombre', 'id')
+                            ->all())
+                        ->placeholder('Sin match — elegí uno o borrá la fila')
+                        ->createOptionForm([
+                            TextInput::make('nombre')
+                                ->required(),
+                        ])
+                        ->createOptionUsing(fn (array $data): int => PerceptionType::create([
+                            ...$data,
+                            'activo' => true,
+                        ])->getKey())
+                        ->createOptionAction(fn (Action $action, Get $get): Action => $action->fillForm([
+                            'nombre' => $get('descripcion'),
+                        ]))
+                        ->extraAttributes(['style' => 'min-width: 12rem;']),
+                    TextInput::make('monto')
+                        ->hiddenLabel()
+                        ->required()
+                        ->numeric()
+                        ->prefix('$')
+                        ->live()
+                        ->afterStateUpdated(fn (Get $get, Set $set) => $this->recalculateTotals(
+                            fn (string $key) => $get("../../{$key}"),
+                            fn (string $key, $value) => $set("../../{$key}", $value),
+                        )),
+                ])
+                ->addActionLabel('Agregar percepción')
+                ->columnSpanFull(),
+
             Hidden::make('subtotal')
                 ->default(0),
             TextEntry::make('subtotal_display')
@@ -295,6 +349,13 @@ class ScanPurchase extends Page
                 ->prefix('$')
                 ->live()
                 ->afterStateUpdated(fn (Get $get, Set $set) => $this->recalculateTotals($get, $set)),
+            Hidden::make('percepciones')
+                ->default(0),
+            TextEntry::make('percepciones_display')
+                ->label('Percepciones')
+                ->state(fn (Get $get) => (float) ($get('percepciones') ?? 0))
+                ->numeric(decimalPlaces: 2, decimalSeparator: ',', thousandsSeparator: '.')
+                ->prefix('$'),
             Hidden::make('total')
                 ->default(0),
             TextEntry::make('total_display')
@@ -353,6 +414,11 @@ class ScanPurchase extends Page
             ? app(ProductLinkMemory::class)->recallMany($supplier->id, $descriptionKeys)
             : [];
 
+        $percepcionKeys = collect($extraction['percepciones'])->pluck('description_key')->all();
+        $rememberedPercepciones = $supplier
+            ? app(PerceptionLinkMemory::class)->recallMany($supplier->id, $percepcionKeys)
+            : [];
+
         if (! $supplier && filled($extraction['proveedor'])) {
             Notification::make()
                 ->title("No encontramos al proveedor \"{$extraction['proveedor']}\"")
@@ -395,6 +461,13 @@ class ScanPurchase extends Page
             'subtotal' => $linea['subtotal'],
         ])->all());
 
+        $set('perceptions', collect($extraction['percepciones'])->map(fn (array $percepcion): array => [
+            'description_key' => $percepcion['description_key'],
+            'descripcion' => $percepcion['descripcion'],
+            'perception_type_id' => $rememberedPercepciones[$percepcion['description_key']] ?? $percepcion['matched_perception_type_id'],
+            'monto' => $percepcion['monto'],
+        ])->all());
+
         $this->recalculateTotals($get, $set);
     }
 
@@ -425,10 +498,11 @@ class ScanPurchase extends Page
     }
 
     /**
-     * Recalcula subtotal (suma de líneas) y total (subtotal − descuento +
-     * iva) para el resumen del paso "Revisar". El total final "real" se
-     * vuelve a calcular en confirmar() a partir de lo que haya en la base en
-     * ese momento; esto es solo para que el usuario vea el número mientras
+     * Recalcula subtotal (suma de líneas), percepciones (suma de la grilla
+     * de percepciones) y total (subtotal − descuento + iva + percepciones)
+     * para el resumen del paso "Revisar". El total final "real" se vuelve a
+     * calcular en confirmar() a partir de lo que haya en la base en ese
+     * momento; esto es solo para que el usuario vea el número mientras
      * corrige.
      */
     private function recalculateTotals(Get|Closure $get, Set|Closure $set): void
@@ -438,10 +512,15 @@ class ScanPurchase extends Page
 
         $set('subtotal', round($subtotal, 2));
 
+        $percepciones = collect($this->lineRows($get('perceptions')))
+            ->sum(fn (array $percepcion): float => (float) ($percepcion['monto'] ?? 0));
+
+        $set('percepciones', round($percepciones, 2));
+
         $descuento = (float) ($get('descuento') ?? 0);
         $iva = (float) ($get('iva') ?? 0);
 
-        $set('total', round($subtotal - $descuento + $iva, 2));
+        $set('total', round($subtotal - $descuento + $iva + $percepciones, 2));
     }
 
     /**
@@ -457,6 +536,10 @@ class ScanPurchase extends Page
             ->filter(fn (array $linea): bool => filled($linea['product_id']) && (float) ($linea['cantidad'] ?? 0) > 0)
             ->values();
 
+        $percepciones = collect($this->lineRows($data['perceptions'] ?? null))
+            ->filter(fn (array $percepcion): bool => filled($percepcion['perception_type_id']) && (float) ($percepcion['monto'] ?? 0) > 0)
+            ->values();
+
         if ($lineas->isEmpty()) {
             Notification::make()
                 ->title('Agregá al menos una línea con producto y cantidad antes de confirmar.')
@@ -466,7 +549,7 @@ class ScanPurchase extends Page
             return;
         }
 
-        $purchase = DB::transaction(function () use ($data, $lineas): Purchase {
+        $purchase = DB::transaction(function () use ($data, $lineas, $percepciones): Purchase {
             $purchase = Purchase::create([
                 'supplier_id' => $data['supplier_id'],
                 'warehouse_id' => $data['warehouse_id'],
@@ -504,9 +587,31 @@ class ScanPurchase extends Page
                 }
             }
 
+            $totalPercepciones = 0.0;
+
+            foreach ($percepciones as $percepcion) {
+                $monto = round((float) $percepcion['monto'], 2);
+                $totalPercepciones += $monto;
+
+                $purchase->perceptions()->create([
+                    'perception_type_id' => $percepcion['perception_type_id'],
+                    'descripcion' => $percepcion['descripcion'] ?? null,
+                    'monto' => $monto,
+                ]);
+
+                if (filled($percepcion['description_key'] ?? null)) {
+                    app(PerceptionLinkMemory::class)->remember(
+                        (int) $purchase->supplier_id,
+                        $percepcion['description_key'],
+                        (int) $percepcion['perception_type_id'],
+                    );
+                }
+            }
+
             $purchase->update([
                 'subtotal' => $subtotal,
-                'total' => $subtotal - (float) $purchase->descuento + (float) $purchase->iva,
+                'percepciones' => $totalPercepciones,
+                'total' => $subtotal - (float) $purchase->descuento + (float) $purchase->iva + $totalPercepciones,
             ]);
 
             return $purchase;
