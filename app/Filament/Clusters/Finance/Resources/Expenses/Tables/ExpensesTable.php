@@ -31,7 +31,7 @@ class ExpensesTable
                 TextColumn::make('descripcion')
                     ->searchable(),
                 TextColumn::make('monto')
-                    ->money('ARS')
+                    ->money('ARS', locale: 'es_AR')
                     ->sortable(),
                 TextColumn::make('medio_pago')
                     ->badge(),

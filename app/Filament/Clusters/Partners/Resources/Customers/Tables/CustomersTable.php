@@ -45,7 +45,7 @@ class CustomersTable
                     ->label('Lista de precios')
                     ->sortable(),
                 TextColumn::make('balance')
-                    ->money('ARS')
+                    ->money('ARS', locale: 'es_AR')
                     ->sortable(),
                 IconColumn::make('predeterminado')
                     ->label('Predeterminado')

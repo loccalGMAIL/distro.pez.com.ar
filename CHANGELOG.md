@@ -8,6 +8,35 @@ y este proyecto sigue [Semantic Versioning](https://semver.org/lang/es/) (ver
 
 ## [Unreleased]
 
+## [0.7.5] - 2026-08-29
+
+### Added
+
+- Catálogo de "Tipos de percepción" (Configuración) para las percepciones
+  que cargan los proveedores en sus facturas (IIBB, IVA RG, etc.), que
+  varían de comprobante en comprobante incluso para el mismo proveedor.
+  Se cargan como líneas en Compras (alta manual y escaneo con IA) y entran
+  en el total (`subtotal − descuento + iva + percepciones`). El escaneo de
+  facturas detecta percepciones contra ese catálogo igual que ya hace con
+  productos, con memoria de vínculos confirmados por proveedor y alta
+  rápida del tipo (precargada con el texto leído) si la IA no encuentra
+  match.
+- Confirmar una compra ahora genera de verdad la deuda con el proveedor
+  (`Purchase.saldo`, `Supplier.balance`), y anularla la revierte por
+  completo, incluidos pagos parciales ya imputados. Antes estos campos
+  existían en el esquema pero ningún código los escribía. `Supplier.balance`
+  pasa a ser de solo lectura (se calcula, ya no se edita a mano). Nuevo
+  comando `php artisan app:recalculate-supplier-balances` para recalcular
+  compras ya confirmadas.
+
+### Changed
+
+- Todas las columnas de la tabla de Proveedores, salvo la razón social,
+  ahora son ocultables.
+- Los montos que todavía mostraban "ARS" en vez de "$" (Proveedores,
+  Clientes, Pagos, imputaciones de pago, Movimientos de stock y Gastos)
+  quedan con el mismo formato que ya usaban Ventas, Compras y Productos.
+
 ## [0.7.3] - 2026-08-29
 
 ### Added

@@ -70,7 +70,7 @@ class AllocationsRelationManager extends RelationManager
                 TextColumn::make('allocatable.numero')
                     ->label('Número'),
                 TextColumn::make('monto')
-                    ->money('ARS'),
+                    ->money('ARS', locale: 'es_AR'),
             ])
             ->headerActions([
                 CreateAction::make(),
