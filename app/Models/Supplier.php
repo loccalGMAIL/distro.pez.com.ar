@@ -66,4 +66,19 @@ class Supplier extends Model
     {
         return $this->morphMany(Payment::class, 'party');
     }
+
+    /**
+     * Recalcula `balance` desde la fuente de verdad (suma de `saldo` de
+     * todas sus compras) en vez de incrementar/decrementar a mano. No hace
+     * falta filtrar por status: una compra en `borrador`/`anulada` ya tiene
+     * `saldo = 0` (ver `Purchase::recalcularSaldo()`).
+     */
+    public function recalcularBalance(): void
+    {
+        $balance = (float) $this->purchases()->sum('saldo');
+
+        if ((float) $this->balance !== $balance) {
+            $this->update(['balance' => $balance]);
+        }
+    }
 }
