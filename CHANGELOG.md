@@ -42,6 +42,10 @@ y este proyecto sigue [Semantic Versioning](https://semver.org/lang/es/) (ver
 - Los montos que todavía mostraban "ARS" en vez de "$" (Proveedores,
   Clientes, Pagos, imputaciones de pago, Movimientos de stock y Gastos)
   quedan con el mismo formato que ya usaban Ventas, Compras y Productos.
+- En la tabla de Compras, el filtro "Trashed" (que hablaba de registros
+  "borrados", pero en realidad filtraba por soft-delete, un mecanismo
+  distinto de anular una compra) se reemplaza por un toggle "Ocultar
+  anuladas" que filtra por `status != 'anulada'`.
 
 ### Fixed
 

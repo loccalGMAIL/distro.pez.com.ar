@@ -23,3 +23,14 @@ test('the purchases table can be filtered by supplier', function () {
         ->assertCanSeeTableRecords([$purchaseA])
         ->assertCanNotSeeTableRecords([$purchaseB]);
 });
+
+test('the "ocultar anuladas" filter hides voided purchases', function () {
+    $confirmada = Purchase::factory()->create(['status' => 'confirmada']);
+    $anulada = Purchase::factory()->create(['status' => 'anulada']);
+
+    Livewire::test(ListPurchases::class)
+        ->assertCanSeeTableRecords([$confirmada, $anulada])
+        ->filterTable('ocultar_anuladas', true)
+        ->assertCanSeeTableRecords([$confirmada])
+        ->assertCanNotSeeTableRecords([$anulada]);
+});
