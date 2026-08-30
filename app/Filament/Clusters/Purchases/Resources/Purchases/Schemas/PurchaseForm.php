@@ -166,6 +166,7 @@ class PurchaseForm
                 ->default(0.0)
                 ->live()
                 ->mask(RawJs::make("\$money(\$input, ',')"))
+                ->formatStateUsing(fn ($state) => self::formatAmountForMask($state))
                 ->dehydrateStateUsing(fn ($state) => self::parseAmount($state))
                 ->extraInputAttributes(['style' => 'text-align: right;'])
                 ->afterStateUpdated(fn (Get $get, Set $set) => self::recalculateTotal($get, $set)),
@@ -326,6 +327,7 @@ class PurchaseForm
                     ->default(0.0)
                     ->live()
                     ->mask(RawJs::make("\$money(\$input, ',')"))
+                    ->formatStateUsing(fn ($state) => self::formatAmountForMask($state))
                     ->dehydrateStateUsing(fn ($state) => self::parseAmount($state))
                     ->extraInputAttributes(['style' => 'text-align: right; font-size: 0.75rem;'])
                     ->afterStateUpdated(fn (Get $get, Set $set) => self::recalculateSummaryFromRoot(
@@ -473,7 +475,14 @@ class PurchaseForm
     /**
      * Convierte un monto tipeado con el mask "$money($input, ',')" (punto de
      * miles, coma decimal) a un float plano. Los valores que ya llegan
-     * numéricos (ej. el 0.0 por defecto, sin tocar) se devuelven tal cual.
+     * numéricos y NO como string (ej. el 0.0 por defecto, sin tocar) se
+     * castean directo.
+     *
+     * A propósito NO usa `is_numeric()` para decidir el atajo: un string
+     * como "18.060" (lo que deja el mask al tipear "18060" sin coma, sin
+     * agregar centavos) es un float PHP válido (18.06) y con ese atajo se
+     * interpretaría mal — hay que asumir que todo string que llega acá es
+     * texto del mask (punto de miles) y parsearlo siempre como tal.
      */
     private static function parseAmount(mixed $value): float
     {
@@ -481,10 +490,42 @@ class PurchaseForm
             return 0.0;
         }
 
-        if (is_numeric($value)) {
+        if (! is_string($value)) {
             return (float) $value;
         }
 
-        return (float) str_replace(['.', ','], ['', '.'], (string) $value);
+        return (float) str_replace(['.', ','], ['', '.'], $value);
+    }
+
+    /**
+     * Formatea un monto crudo (decimal de la base, separador "." como en
+     * PHP) al formato que espera el mask "$money($input, ',')" (punto de
+     * miles, coma decimal) antes de mostrarlo. Sin esto, al abrir una
+     * compra ya guardada el mask no reconoce el "." como decimal (espera
+     * ",", y descarta cualquier otro carácter) y reinterpreta el número
+     * entero como si fueran miles — comprobado en vivo: "18.06" (dieciocho
+     * con seis) el mask lo deja en "1.806" (mil ochocientos seis).
+     *
+     * `formatStateUsing` corre en cada hidratación, no solo la primera — así
+     * que además de la carga inicial, también se dispara sobre lo que el
+     * usuario ya tipeó (ej. "18.060" sin coma, el propio mask no agrega
+     * centavos si no se los tipea). Por eso NO alcanza con `is_numeric()`:
+     * "18.060" también es un float válido en PHP (18.06) y se
+     * reformatearía mal una segunda vez. Un decimal crudo de `decimal:2`
+     * siempre tiene EXACTAMENTE 2 dígitos después del único punto (ej.
+     * "18060.00"); un texto ya agrupado por el mask sin coma escrita queda
+     * con 3 (el último grupo de miles, ej. "18.060"). Ese patrón exacto es
+     * lo único que distingue con certeza "todavía sin tocar por el mask" de
+     * "ya lo procesó el mask" — cualquier otro string se deja intacto.
+     */
+    private static function formatAmountForMask(mixed $state): mixed
+    {
+        if (! is_string($state)) {
+            return is_numeric($state) ? number_format((float) $state, 2, ',', '.') : $state;
+        }
+
+        return preg_match('/^-?\d+\.\d{2}$/', $state)
+            ? number_format((float) $state, 2, ',', '.')
+            : $state;
     }
 }
