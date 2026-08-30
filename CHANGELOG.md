@@ -54,6 +54,14 @@ y este proyecto sigue [Semantic Versioning](https://semver.org/lang/es/) (ver
   una columna al botón de borrar. Se agregó el subtotal visible y se bajó
   la tipografía de cantidad/costo/subtotal/percepciones para que la fila
   quede más distribuida.
+- Al editar a mano el descuento o el monto de una percepción en una compra
+  ya guardada, el valor se multiplicaba por ~100 en cada apertura y
+  guardado (ej. $18.060 terminaba en $1.806, y de nuevo en $180.600 si se
+  volvía a guardar sin corregir). El mask de dinero del campo esperaba
+  coma como separador decimal, pero el valor crudo que viene de la base
+  usa punto — el mask no lo reconocía y reinterpretaba el número entero
+  como si fueran miles. Afectaba también, con el mismo riesgo, al
+  descuento.
 
 ## [0.7.3] - 2026-08-29
 
