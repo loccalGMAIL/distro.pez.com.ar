@@ -82,7 +82,6 @@ class ScanPurchase extends Page
             'tipo_comprobante' => 'factura_a',
             'warehouse_id' => Warehouse::where('predeterminado', true)->value('id'),
             'descuento' => 0,
-            'iva' => 0,
             'lineas' => [],
             'perceptions' => [],
         ]);
@@ -261,6 +260,7 @@ class ScanPurchase extends Page
                         ->required()
                         ->numeric()
                         ->live()
+                        ->extraInputAttributes(['style' => 'font-size: 0.75rem;'])
                         ->afterStateUpdated(fn (Get $get, Set $set) => $this->recalculateLine($get, $set)),
                     TextInput::make('costo_unit')
                         ->hiddenLabel()
@@ -268,9 +268,16 @@ class ScanPurchase extends Page
                         ->numeric()
                         ->prefix('$')
                         ->live()
+                        ->extraInputAttributes(['style' => 'text-align: right; font-size: 0.75rem;'])
                         ->afterStateUpdated(fn (Get $get, Set $set) => $this->recalculateLine($get, $set)),
                     Hidden::make('subtotal')
                         ->default(0),
+                    TextEntry::make('subtotal_display')
+                        ->hiddenLabel()
+                        ->state(fn (Get $get) => (float) ($get('subtotal') ?? 0))
+                        ->numeric(decimalPlaces: 2, decimalSeparator: ',', thousandsSeparator: '.')
+                        ->prefix('$')
+                        ->extraAttributes(['style' => 'display: block; text-align: right; font-size: 0.75rem;']),
                 ])
                 ->addActionLabel('Agregar línea')
                 ->required()
@@ -292,7 +299,8 @@ class ScanPurchase extends Page
                     TextInput::make('descripcion')
                         ->hiddenLabel()
                         ->disabled()
-                        ->dehydrated(),
+                        ->dehydrated()
+                        ->extraInputAttributes(['style' => 'font-size: 0.75rem;']),
                     Select::make('perception_type_id')
                         ->label('Tipo')
                         ->hiddenLabel()
@@ -320,6 +328,7 @@ class ScanPurchase extends Page
                         ->numeric()
                         ->prefix('$')
                         ->live()
+                        ->extraInputAttributes(['style' => 'text-align: right; font-size: 0.75rem;'])
                         ->afterStateUpdated(fn (Get $get, Set $set) => $this->recalculateTotals(
                             fn (string $key) => $get("../../{$key}"),
                             fn (string $key, $value) => $set("../../{$key}", $value),
@@ -337,13 +346,6 @@ class ScanPurchase extends Page
                 ->prefix('$'),
             TextInput::make('descuento')
                 ->label('Descuento')
-                ->required()
-                ->numeric()
-                ->prefix('$')
-                ->live()
-                ->afterStateUpdated(fn (Get $get, Set $set) => $this->recalculateTotals($get, $set)),
-            TextInput::make('iva')
-                ->label('IVA')
                 ->required()
                 ->numeric()
                 ->prefix('$')
@@ -449,7 +451,6 @@ class ScanPurchase extends Page
         $set('fecha', $extraction['fecha'] ?? now()->toDateString());
         $set('vence_at', $extraction['vencimiento']);
         $set('descuento', 0);
-        $set('iva', $extraction['iva'] ?? 0);
 
         $set('lineas', collect($extraction['lineas'])->map(fn (array $linea): array => [
             'description_key' => $linea['description_key'],
@@ -499,11 +500,11 @@ class ScanPurchase extends Page
 
     /**
      * Recalcula subtotal (suma de líneas), percepciones (suma de la grilla
-     * de percepciones) y total (subtotal − descuento + iva + percepciones)
-     * para el resumen del paso "Revisar". El total final "real" se vuelve a
-     * calcular en confirmar() a partir de lo que haya en la base en ese
-     * momento; esto es solo para que el usuario vea el número mientras
-     * corrige.
+     * de percepciones, IVA incluido) y total (subtotal − descuento +
+     * percepciones) para el resumen del paso "Revisar". El total final
+     * "real" se vuelve a calcular en confirmar() a partir de lo que haya en
+     * la base en ese momento; esto es solo para que el usuario vea el número
+     * mientras corrige.
      */
     private function recalculateTotals(Get|Closure $get, Set|Closure $set): void
     {
@@ -518,9 +519,8 @@ class ScanPurchase extends Page
         $set('percepciones', round($percepciones, 2));
 
         $descuento = (float) ($get('descuento') ?? 0);
-        $iva = (float) ($get('iva') ?? 0);
 
-        $set('total', round($subtotal - $descuento + $iva + $percepciones, 2));
+        $set('total', round($subtotal - $descuento + $percepciones, 2));
     }
 
     /**
@@ -559,7 +559,6 @@ class ScanPurchase extends Page
                 'fecha' => $data['fecha'],
                 'vence_at' => $data['vence_at'] ?? null,
                 'descuento' => $data['descuento'] ?? 0,
-                'iva' => $data['iva'] ?? 0,
                 'archivo_path' => $data['archivo_path'] ?? null,
                 'ocr_data' => $this->ocrData ?: null,
                 'status' => 'borrador',
@@ -611,7 +610,7 @@ class ScanPurchase extends Page
             $purchase->update([
                 'subtotal' => $subtotal,
                 'percepciones' => $totalPercepciones,
-                'total' => $subtotal - (float) $purchase->descuento + (float) $purchase->iva + $totalPercepciones,
+                'total' => $subtotal - (float) $purchase->descuento + $totalPercepciones,
             ]);
 
             return $purchase;

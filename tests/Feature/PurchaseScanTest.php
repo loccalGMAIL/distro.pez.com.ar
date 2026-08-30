@@ -49,8 +49,7 @@ test('capturing an invoice extracts data and prefills the review step', function
         'fecha' => '2026-06-02',
         'vencimiento' => null,
         'subtotal' => '1000',
-        'iva' => '210',
-        'total' => '1210',
+        'total' => '1000',
         'lineas' => [
             [
                 'descripcion' => 'Producto de prueba',
@@ -85,8 +84,7 @@ test('confirming after a scan creates a draft purchase with its lines and rememb
         'fecha' => '2026-06-02',
         'vencimiento' => null,
         'subtotal' => '1000',
-        'iva' => '210',
-        'total' => '1210',
+        'total' => '1000',
         'lineas' => [
             [
                 'descripcion' => 'Producto de prueba',
@@ -133,8 +131,7 @@ test('capturing an invoice with a percepcion prefills the perceptions repeater',
         'fecha' => '2026-06-02',
         'vencimiento' => null,
         'subtotal' => '1000',
-        'iva' => '210',
-        'total' => '1360',
+        'total' => '1150',
         'lineas' => [
             [
                 'descripcion' => 'Producto de prueba',
@@ -177,8 +174,7 @@ test('confirming after a scan with a percepcion creates a PurchasePerception and
         'fecha' => '2026-06-02',
         'vencimiento' => null,
         'subtotal' => '1000',
-        'iva' => '210',
-        'total' => '1360',
+        'total' => '1150',
         'lineas' => [
             [
                 'descripcion' => 'Producto de prueba',
@@ -210,7 +206,7 @@ test('confirming after a scan with a percepcion creates a PurchasePerception and
     expect((float) $purchase->perceptions->first()->monto)->toBe(150.0);
     expect($purchase->perceptions->first()->perception_type_id)->toBe($perceptionType->id);
     expect((float) $purchase->percepciones)->toBe(150.0);
-    expect((float) $purchase->total)->toBe(1000.0 - 0.0 + 210.0 + 150.0);
+    expect((float) $purchase->total)->toBe(1000.0 - 0.0 + 150.0);
 
     expect(SupplierPerceptionLink::where('supplier_id', $supplier->id)->where('perception_type_id', $perceptionType->id)->exists())->toBeTrue();
 });
@@ -227,7 +223,6 @@ test('when no supplier matches, extraction suggests creating one prefilled with 
         'fecha' => '2026-06-02',
         'vencimiento' => null,
         'subtotal' => null,
-        'iva' => null,
         'total' => null,
         'lineas' => [
             [
@@ -269,7 +264,7 @@ test('when a line has no product match, extraction suggests creating one prefill
     fakeClaudeExtraction([
         'proveedor' => 'Bebidas Andinas S.A.', 'cuit' => null, 'tipo_comprobante' => 'factura_a',
         'punto_venta' => null, 'numero' => null, 'fecha' => '2026-06-02', 'vencimiento' => null,
-        'subtotal' => null, 'iva' => null, 'total' => null,
+        'subtotal' => null, 'total' => null,
         'lineas' => [
             [
                 'descripcion' => 'Fideos Matarazzo 500g',
@@ -313,7 +308,7 @@ test('when a percepcion has no match, extraction suggests creating one prefilled
     fakeClaudeExtraction([
         'proveedor' => 'Bebidas Andinas S.A.', 'cuit' => null, 'tipo_comprobante' => 'factura_a',
         'punto_venta' => null, 'numero' => null, 'fecha' => '2026-06-02', 'vencimiento' => null,
-        'subtotal' => null, 'iva' => null, 'total' => null,
+        'subtotal' => null, 'total' => null,
         'lineas' => [
             [
                 'descripcion' => 'Producto de prueba',
@@ -358,7 +353,7 @@ test('confirming without any line matched to a product shows an error and create
     fakeClaudeExtraction([
         'proveedor' => 'Proveedor Sin Match', 'cuit' => null, 'tipo_comprobante' => 'factura_a',
         'punto_venta' => null, 'numero' => null, 'fecha' => '2026-06-02', 'vencimiento' => null,
-        'subtotal' => null, 'iva' => null, 'total' => null,
+        'subtotal' => null, 'total' => null,
         'lineas' => [
             [
                 'descripcion' => 'Producto que no matchea con nada',

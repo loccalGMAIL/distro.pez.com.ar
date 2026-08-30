@@ -15,7 +15,7 @@ beforeEach(function () {
 test('editing a purchase persists a percepcion row and its contribution to the cached total', function () {
     $product = Product::factory()->create(['costo_ultimo' => 100]);
     $perceptionType = PerceptionType::factory()->create(['activo' => true]);
-    $purchase = Purchase::factory()->create(['status' => 'borrador', 'descuento' => 0, 'iva' => 0]);
+    $purchase = Purchase::factory()->create(['status' => 'borrador', 'descuento' => 0]);
     PurchaseLine::factory()->for($purchase)->create([
         'product_id' => $product->id,
         'cantidad' => 1,
