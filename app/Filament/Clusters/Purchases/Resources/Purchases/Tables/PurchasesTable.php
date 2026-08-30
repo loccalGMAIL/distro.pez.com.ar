@@ -12,9 +12,10 @@ use Filament\Actions\RestoreBulkAction;
 use Filament\Actions\ViewAction;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
-use Filament\Tables\Filters\TrashedFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 
 class PurchasesTable
 {
@@ -89,12 +90,15 @@ class PurchasesTable
             ->filters([
                 SelectFilter::make('status')
                     ->options(['borrador' => 'Borrador', 'confirmada' => 'Confirmada', 'anulada' => 'Anulada']),
+                Filter::make('ocultar_anuladas')
+                    ->label('Ocultar anuladas')
+                    ->toggle()
+                    ->query(fn (Builder $query): Builder => $query->where('status', '!=', 'anulada')),
                 SelectFilter::make('supplier_id')
                     ->label('Proveedor')
                     ->relationship('supplier', 'razon_social')
                     ->searchable()
                     ->preload(),
-                TrashedFilter::make(),
             ])
             ->recordActions([
                 ViewAction::make()

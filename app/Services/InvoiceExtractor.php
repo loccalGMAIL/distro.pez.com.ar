@@ -13,7 +13,7 @@ use RuntimeException;
  * @phpstan-type PerceptionCatalogItem array{id: int, nombre: string}
  * @phpstan-type InvoiceLine array{descripcion: string, description_key: string, cantidad: float, unidad: string, precio_unitario: float, subtotal: float, matched_product_id: int|null, consistente: bool}
  * @phpstan-type InvoicePerception array{descripcion: string, description_key: string, monto: float, matched_perception_type_id: int|null}
- * @phpstan-type InvoiceExtraction array{proveedor: mixed, cuit: mixed, tipo_comprobante: mixed, punto_venta: mixed, numero: string|null, fecha: string|null, vencimiento: string|null, subtotal: float|null, iva: float|null, total: float|null, lineas: array<int, InvoiceLine>, percepciones: array<int, InvoicePerception>}
+ * @phpstan-type InvoiceExtraction array{proveedor: mixed, cuit: mixed, tipo_comprobante: mixed, punto_venta: mixed, numero: string|null, fecha: string|null, vencimiento: string|null, subtotal: float|null, total: float|null, lineas: array<int, InvoiceLine>, percepciones: array<int, InvoicePerception>}
  */
 class InvoiceExtractor
 {
@@ -206,10 +206,13 @@ class InvoiceExtractor
             - matched_product_id: solo completalo si estás razonablemente seguro de que
               la línea corresponde a ese producto del catálogo. Si no hay match claro,
               null.
-            - Percepciones: son montos adicionales que el proveedor factura por separado
-              del IVA (ej. "Perc. IIBB Bs As", "Percepción RG 2408", "Perc. IVA"). NO
-              confundas una percepción con el IVA de la factura ni con el descuento. Si
-              la factura no tiene ninguna percepción, devolvé "percepciones": [].
+            - Percepciones: son todos los montos adicionales que el proveedor factura por
+              separado del subtotal de productos, INCLUYENDO el IVA. No hay un campo
+              aparte para el IVA: si la factura lo discrimina, agregalo como una
+              percepción más (ej. "IVA 21%", "IVA 10,5%") igual que "Perc. IIBB Bs As" o
+              "Percepción RG 2408". NO confundas una percepción con el descuento. Si la
+              factura no tiene ningún monto adicional (ni siquiera IVA discriminado),
+              devolvé "percepciones": [].
             - matched_perception_type_id: igual que matched_product_id, pero contra el
               catálogo de tipos de percepción. Si no hay match claro, null.
 
@@ -223,7 +226,6 @@ class InvoiceExtractor
               "fecha": string|null,
               "vencimiento": string|null,
               "subtotal": string|null,
-              "iva": string|null,
               "total": string|null,
               "lineas": [
                 {
@@ -318,7 +320,6 @@ class InvoiceExtractor
             'fecha' => $this->normalizeDate($data['fecha'] ?? null),
             'vencimiento' => $this->normalizeDate($data['vencimiento'] ?? null),
             'subtotal' => $this->parseDecimal($data['subtotal'] ?? null),
-            'iva' => $this->parseDecimal($data['iva'] ?? null),
             'total' => $this->parseDecimal($data['total'] ?? null),
             'lineas' => $lines,
             'percepciones' => $percepciones,

@@ -41,7 +41,6 @@ test('extract normalizes AR and US decimal formats without doing arithmetic', fu
         'fecha' => '2026-06-02',
         'vencimiento' => null,
         'subtotal' => '13.891,40',
-        'iva' => '2.917,19',
         'total' => '16.808,59',
         'lineas' => [
             [
@@ -53,12 +52,19 @@ test('extract normalizes AR and US decimal formats without doing arithmetic', fu
                 'matched_product_id' => $product->id,
             ],
         ],
+        'percepciones' => [
+            [
+                'descripcion' => 'IVA 21%',
+                'monto' => '2.917,19',
+                'matched_perception_type_id' => null,
+            ],
+        ],
     ]);
 
     $result = app(InvoiceExtractor::class)->extract($this->fakeImagePath, 'image/jpeg');
 
     expect($result['subtotal'])->toBe(13891.40);
-    expect($result['iva'])->toBe(2917.19);
+    expect($result['percepciones'][0]['monto'])->toBe(2917.19);
     expect($result['total'])->toBe(16808.59);
     expect($result['numero'])->toBe('0006-00008298');
     expect($result['lineas'][0]['cantidad'])->toBe(10.0);
@@ -72,7 +78,7 @@ test('extract parses US-style decimals (comma thousands, dot decimal)', function
     fakeClaudeResponse([
         'proveedor' => null, 'cuit' => null, 'tipo_comprobante' => null,
         'punto_venta' => null, 'numero' => null, 'fecha' => null, 'vencimiento' => null,
-        'subtotal' => '1,148,785.38', 'iva' => null, 'total' => '1,148,785.38',
+        'subtotal' => '1,148,785.38', 'total' => '1,148,785.38',
         'lineas' => [],
     ]);
 
@@ -85,7 +91,7 @@ test('extract discards a matched_product_id that does not belong to the active c
     fakeClaudeResponse([
         'proveedor' => null, 'cuit' => null, 'tipo_comprobante' => null,
         'punto_venta' => null, 'numero' => null, 'fecha' => null, 'vencimiento' => null,
-        'subtotal' => null, 'iva' => null, 'total' => null,
+        'subtotal' => null, 'total' => null,
         'lineas' => [
             [
                 'descripcion' => 'Producto inventado',
@@ -107,7 +113,7 @@ test('extract maps free-text units to the Product::base_unit enum values', funct
     fakeClaudeResponse([
         'proveedor' => null, 'cuit' => null, 'tipo_comprobante' => null,
         'punto_venta' => null, 'numero' => null, 'fecha' => null, 'vencimiento' => null,
-        'subtotal' => null, 'iva' => null, 'total' => null,
+        'subtotal' => null, 'total' => null,
         'lineas' => [
             ['descripcion' => 'A', 'cantidad' => '1', 'unidad' => 'bidones', 'precio_unitario' => '1', 'subtotal' => '1', 'matched_product_id' => null],
             ['descripcion' => 'B', 'cantidad' => '1', 'unidad' => 'Kilos', 'precio_unitario' => '1', 'subtotal' => '1', 'matched_product_id' => null],
@@ -126,7 +132,7 @@ test('extract flags a line as inconsistent when quantity times price does not ma
     fakeClaudeResponse([
         'proveedor' => null, 'cuit' => null, 'tipo_comprobante' => null,
         'punto_venta' => null, 'numero' => null, 'fecha' => null, 'vencimiento' => null,
-        'subtotal' => null, 'iva' => null, 'total' => null,
+        'subtotal' => null, 'total' => null,
         'lineas' => [
             ['descripcion' => 'A', 'cantidad' => '10', 'unidad' => 'u', 'precio_unitario' => '5', 'subtotal' => '9999', 'matched_product_id' => null],
         ],
@@ -141,7 +147,7 @@ test('extract returns null fecha instead of guessing an implausible format', fun
     fakeClaudeResponse([
         'proveedor' => null, 'cuit' => null, 'tipo_comprobante' => null,
         'punto_venta' => null, 'numero' => null, 'fecha' => '02/06/2026', 'vencimiento' => null,
-        'subtotal' => null, 'iva' => null, 'total' => null, 'lineas' => [],
+        'subtotal' => null, 'total' => null, 'lineas' => [],
     ]);
 
     $result = app(InvoiceExtractor::class)->extract($this->fakeImagePath, 'image/jpeg');
@@ -155,7 +161,7 @@ test('extract normalizes percepciones and validates matched_perception_type_id a
     fakeClaudeResponse([
         'proveedor' => null, 'cuit' => null, 'tipo_comprobante' => null,
         'punto_venta' => null, 'numero' => null, 'fecha' => null, 'vencimiento' => null,
-        'subtotal' => null, 'iva' => null, 'total' => null, 'lineas' => [],
+        'subtotal' => null, 'total' => null, 'lineas' => [],
         'percepciones' => [
             [
                 'descripcion' => 'Percepcion IIBB Buenos Aires',
@@ -183,7 +189,7 @@ test('extract defaults percepciones to an empty array when the AI response omits
     fakeClaudeResponse([
         'proveedor' => null, 'cuit' => null, 'tipo_comprobante' => null,
         'punto_venta' => null, 'numero' => null, 'fecha' => null, 'vencimiento' => null,
-        'subtotal' => null, 'iva' => null, 'total' => null, 'lineas' => [],
+        'subtotal' => null, 'total' => null, 'lineas' => [],
     ]);
 
     $result = app(InvoiceExtractor::class)->extract($this->fakeImagePath, 'image/jpeg');

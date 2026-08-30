@@ -169,16 +169,6 @@ class PurchaseForm
                 ->dehydrateStateUsing(fn ($state) => self::parseAmount($state))
                 ->extraInputAttributes(['style' => 'text-align: right;'])
                 ->afterStateUpdated(fn (Get $get, Set $set) => self::recalculateTotal($get, $set)),
-            TextInput::make('iva')
-                ->label('IVA')
-                ->required()
-                ->prefix('$')
-                ->default(0.0)
-                ->live()
-                ->mask(RawJs::make("\$money(\$input, ',')"))
-                ->dehydrateStateUsing(fn ($state) => self::parseAmount($state))
-                ->extraInputAttributes(['style' => 'text-align: right;'])
-                ->afterStateUpdated(fn (Get $get, Set $set) => self::recalculateTotal($get, $set)),
             Hidden::make('percepciones')
                 ->default(0),
             TextEntry::make('percepciones_display')
@@ -310,7 +300,6 @@ class PurchaseForm
             ->afterStateUpdated(fn (Get $get, Set $set) => self::recalculateSummaryFromRoot($get, $set))
             ->table([
                 TableColumn::make('Tipo'),
-                TableColumn::make('Descripción'),
                 TableColumn::make('Monto')->width('120px')->alignment(Alignment::End),
             ])
             ->compact()
@@ -330,9 +319,6 @@ class PurchaseForm
                         'activo' => true,
                     ])->getKey())
                     ->extraAttributes(['style' => 'min-width: 12rem;']),
-                TextInput::make('descripcion')
-                    ->hiddenLabel()
-                    ->extraInputAttributes(['style' => 'font-size: 0.75rem;']),
                 TextInput::make('monto')
                     ->hiddenLabel()
                     ->required()
@@ -472,16 +458,16 @@ class PurchaseForm
     }
 
     /**
-     * Total = subtotal - descuento + iva + percepciones.
+     * Total = subtotal - descuento + percepciones. El IVA ya no es un
+     * término aparte: se carga como una percepción más.
      */
     private static function recalculateTotal(Get|Closure $get, Set|Closure $set): void
     {
         $subtotal = (float) ($get('subtotal') ?? 0);
         $descuento = self::parseAmount($get('descuento'));
-        $iva = self::parseAmount($get('iva'));
         $percepciones = (float) ($get('percepciones') ?? 0);
 
-        $set('total', number_format($subtotal - $descuento + $iva + $percepciones, 2, '.', ''));
+        $set('total', number_format($subtotal - $descuento + $percepciones, 2, '.', ''));
     }
 
     /**

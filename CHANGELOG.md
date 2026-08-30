@@ -13,10 +13,10 @@ y este proyecto sigue [Semantic Versioning](https://semver.org/lang/es/) (ver
 ### Added
 
 - Catálogo de "Tipos de percepción" (Configuración) para las percepciones
-  que cargan los proveedores en sus facturas (IIBB, IVA RG, etc.), que
+  que cargan los proveedores en sus facturas (IIBB, IVA, RG 2408, etc.), que
   varían de comprobante en comprobante incluso para el mismo proveedor.
   Se cargan como líneas en Compras (alta manual y escaneo con IA) y entran
-  en el total (`subtotal − descuento + iva + percepciones`). El escaneo de
+  en el total (`subtotal − descuento + percepciones`). El escaneo de
   facturas detecta percepciones contra ese catálogo igual que ya hace con
   productos, con memoria de vínculos confirmados por proveedor y alta
   rápida del tipo (precargada con el texto leído) si la IA no encuentra
@@ -31,11 +31,29 @@ y este proyecto sigue [Semantic Versioning](https://semver.org/lang/es/) (ver
 
 ### Changed
 
+- El IVA de una factura de compra deja de ser un campo aparte: ahora se
+  carga como una percepción más (ej. "IVA 21%"), tanto a mano como
+  detectado por la IA al escanear. El histórico de `Purchase.iva` se migró
+  a percepciones sin cambiar ningún total ya calculado. El campo
+  "Descripción" de percepciones se sacó del alta manual (se sigue viendo,
+  de solo lectura, en la revisión del escaneo con IA).
 - Todas las columnas de la tabla de Proveedores, salvo la razón social,
   ahora son ocultables.
 - Los montos que todavía mostraban "ARS" en vez de "$" (Proveedores,
   Clientes, Pagos, imputaciones de pago, Movimientos de stock y Gastos)
   quedan con el mismo formato que ya usaban Ventas, Compras y Productos.
+- En la tabla de Compras, el filtro "Trashed" (que hablaba de registros
+  "borrados", pero en realidad filtraba por soft-delete, un mecanismo
+  distinto de anular una compra) se reemplaza por un toggle "Ocultar
+  anuladas" que filtra por `status != 'anulada'`.
+
+### Fixed
+
+- En la tabla de líneas del escaneo de facturas, al subtotal de cada ítem
+  le faltaba la celda visible (quedaba como campo oculto), lo que corría
+  una columna al botón de borrar. Se agregó el subtotal visible y se bajó
+  la tipografía de cantidad/costo/subtotal/percepciones para que la fila
+  quede más distribuida.
 
 ## [0.7.3] - 2026-08-29
 
