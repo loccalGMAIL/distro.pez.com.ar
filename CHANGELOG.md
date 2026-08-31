@@ -21,6 +21,13 @@ y este proyecto sigue [Semantic Versioning](https://semver.org/lang/es/) (ver
   sin tener que scrollear todo el catálogo. En pantallas más grandes se
   siguen viendo todos los productos, como hasta ahora.
 
+### Fixed
+
+- Los widgets del dashboard "Ventas del mes" y "Producto más vendido"
+  ignoraban las ventas del último día del mes: el rango de fechas se
+  comparaba contra la fecha sin hora, y una venta del 31 guardada como
+  "31 a las 00:00" quedaba fuera del filtro.
+
 ## [0.7.5] - 2026-08-29
 
 ### Added

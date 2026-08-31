@@ -27,7 +27,7 @@ class ProductoMasVendidoWidget extends Widget
             ->select('product_id', DB::raw('SUM(cantidad) as total_cantidad'))
             ->whereHas('sale', function ($query) {
                 $query->where('status', 'confirmada')
-                    ->whereBetween('fecha', [now()->startOfMonth()->toDateString(), now()->endOfMonth()->toDateString()]);
+                    ->whereBetween('fecha', [now()->startOfMonth(), now()->endOfMonth()]);
             })
             ->groupBy('product_id')
             ->orderByDesc('total_cantidad')
