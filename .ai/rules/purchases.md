@@ -24,6 +24,8 @@ Las acciones de negocio viven en `app/Models/Purchase.php`:
 A diferencia de `Sale.numero` (auto-generado en `Sale::booted()`), `Purchase.numero` se tipea a mano: es el número de factura/remito que puso el proveedor. Es único por `(supplier_id, tipo_comprobante, numero)` (constraint de la migración), no globalmente. No agregar ninguna auto-generación tipo contador para este campo — no aplica, cada proveedor numera su propio comprobante.
 
 ## Tabla: fecha fija primera columna, todo ordenable (desviación intencional de SalesTable)
+El filtro `Filter::make('ocultar_anuladas')->toggle()->default()` viene ENCENDIDO por defecto (a pedido explícito): el listado arranca sin las compras anuladas y hay que apagar el toggle para verlas — cualquier test nuevo sobre `PurchasesTable` tiene que contar con eso (una `Purchase` con `status = 'anulada'` no aparece salvo que el test haga `->filterTable('ocultar_anuladas', false)`).
+
 A pedido explícito: `fecha` es la primera columna y NO lleva `->toggleable()` (siempre visible); el resto de las columnas sí son togglables. Todas las columnas —incluidas las de relación como `supplier.razon_social`, `warehouse.nombre`, `user.name`— llevan `->sortable()`. `SalesTable` NO hace esto (ahí las columnas de relación no son sortable); no asumir que ese patrón aplica acá también si se toca `PurchasesTable` en el futuro.
 
 ## `archivo_path` es privado, no público

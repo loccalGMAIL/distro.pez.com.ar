@@ -93,6 +93,7 @@ class PurchasesTable
                 Filter::make('ocultar_anuladas')
                     ->label('Ocultar anuladas')
                     ->toggle()
+                    ->default()
                     ->query(fn (Builder $query): Builder => $query->where('status', '!=', 'anulada')),
                 SelectFilter::make('supplier_id')
                     ->label('Proveedor')
