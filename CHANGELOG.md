@@ -8,6 +8,19 @@ y este proyecto sigue [Semantic Versioning](https://semver.org/lang/es/) (ver
 
 ## [Unreleased]
 
+## [0.7.6] - 2026-08-31
+
+### Changed
+
+- En la tabla de Compras, el toggle "Ocultar anuladas" ahora viene encendido
+  por defecto: el listado abre directamente sin las compras anuladas y hay
+  que apagarlo para volver a verlas.
+- En Nueva venta, en celular el grid de productos muestra solo las primeras
+  6 tarjetas; el resto se despliega con un botón "Ver más" (y se vuelve a
+  plegar con "Ver menos"), para que el carrito y el resumen queden a mano
+  sin tener que scrollear todo el catálogo. En pantallas más grandes se
+  siguen viendo todos los productos, como hasta ahora.
+
 ## [0.7.5] - 2026-08-29
 
 ### Added
