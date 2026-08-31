@@ -63,3 +63,29 @@ test('tapping the same product card twice sums the quantity instead of duplicati
             return [];
         });
 });
+
+test('on mobile only the first six product cards are visible, the rest behind a "ver más" button', function () {
+    $products = Product::factory()->count(8)->sequence(
+        fn ($sequence) => ['nombre' => 'Producto '.chr(65 + $sequence->index)],
+    )->create();
+
+    $html = Livewire::test(CreateSale::class)->html();
+
+    // Todas las cards se renderizan (en desktop se ven siempre; en mobile al desplegar).
+    foreach ($products as $product) {
+        expect($html)->toContain($product->nombre);
+    }
+
+    // Las que sobran quedan dentro del wrapper que arranca oculto por debajo de `sm`.
+    expect($html)->toContain('hidden sm:contents');
+    expect($html)->toContain('Ver más (2)');
+});
+
+test('the "ver más" button is not rendered when there are six products or fewer', function () {
+    Product::factory()->count(6)->create();
+
+    $html = Livewire::test(CreateSale::class)->html();
+
+    expect($html)->not->toContain('hidden sm:contents');
+    expect($html)->not->toContain('Ver más');
+});

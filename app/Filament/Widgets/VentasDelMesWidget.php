@@ -24,7 +24,7 @@ class VentasDelMesWidget extends Widget
     {
         $total = Sale::query()
             ->where('status', 'confirmada')
-            ->whereBetween('fecha', [now()->startOfMonth()->toDateString(), now()->endOfMonth()->toDateString()])
+            ->whereBetween('fecha', [now()->startOfMonth(), now()->endOfMonth()])
             ->sum('total');
 
         return [
