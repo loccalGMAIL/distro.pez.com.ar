@@ -79,6 +79,17 @@ class TimeEntry extends Model
     }
 
     /**
+     * Ciclos todavía no incluidos en ninguna liquidación.
+     *
+     * @param  Builder<self>  $query
+     * @return Builder<self>
+     */
+    public function scopeSinLiquidar(Builder $query): Builder
+    {
+        return $query->whereNull('time_entry_settlement_id');
+    }
+
+    /**
      * Ciclo actualmente abierto del usuario, si lo hay.
      */
     public static function openFor(User $user): ?self
@@ -157,7 +168,7 @@ class TimeEntry extends Model
             ->when($userId, fn (Builder $query, int $userId): Builder => $query->where('user_id', $userId))
             ->when($desde, fn (Builder $query, string $desde): Builder => $query->whereDate('started_at', '>=', $desde))
             ->when($hasta, fn (Builder $query, string $hasta): Builder => $query->whereDate('started_at', '<=', $hasta))
-            ->when($liquidacion === 'pendientes', fn (Builder $query): Builder => $query->whereNull('time_entry_settlement_id'))
+            ->when($liquidacion === 'pendientes', fn (Builder $query): Builder => $query->sinLiquidar())
             ->when($liquidacion === 'liquidados', fn (Builder $query): Builder => $query->whereNotNull('time_entry_settlement_id'));
     }
 

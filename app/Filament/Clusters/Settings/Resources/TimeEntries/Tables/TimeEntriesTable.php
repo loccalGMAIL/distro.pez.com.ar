@@ -43,7 +43,7 @@ class TimeEntriesTable
             ->filters([
                 SelectFilter::make('user_id')
                     ->label('Empleado')
-                    ->options(fn (): array => User::administrativoOptions()),
+                    ->options(fn (): array => User::fichajeOptions()),
                 Filter::make('fecha')
                     ->schema([
                         DatePicker::make('desde')->label('Desde'),

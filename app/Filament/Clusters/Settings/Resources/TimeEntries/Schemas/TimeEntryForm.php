@@ -15,7 +15,8 @@ class TimeEntryForm
             ->components([
                 Select::make('user_id')
                     ->label('Empleado')
-                    ->options(fn (): array => User::administrativoOptions())
+                    ->options(fn (): array => User::fichajeOptions())
+                    ->helperText('Solo aparecen usuarios con tarifa horaria cargada o con fichajes previos.')
                     ->searchable()
                     ->required(),
                 DateTimePicker::make('started_at')

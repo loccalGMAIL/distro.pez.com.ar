@@ -60,7 +60,7 @@ class TimeEntrySettlementsTable
             ->filters([
                 SelectFilter::make('user_id')
                     ->label('Empleado')
-                    ->options(fn (): array => User::administrativoOptions()),
+                    ->options(fn (): array => User::fichajeOptions()),
                 SelectFilter::make('status')
                     ->label('Estado')
                     ->options([

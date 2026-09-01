@@ -13,7 +13,7 @@ beforeEach(function () {
 
 test('an admin can create a time entry for an employee', function () {
     $admin = User::factory()->admin()->create(['activo' => true]);
-    $employee = User::factory()->administrativo()->create(['activo' => true]);
+    $employee = User::factory()->administrativo()->hourlyRate(1000)->create(['activo' => true]);
 
     $this->actingAs($admin);
 

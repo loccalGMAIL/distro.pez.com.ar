@@ -126,17 +126,40 @@ class User extends Authenticatable implements FilamentUser
     }
 
     /**
-     * Empleados con el rol "administrativo", para el selector del fichaje
-     * manual y el informe. No usa el scope role() de Spatie porque ese
-     * lanza una excepción si el rol todavía no existe (por ejemplo, antes
-     * de correr ShieldSeeder en una instalación nueva).
+     * Empleados que cobran por hora: los que tienen tarifa cargada, más
+     * cualquiera que ya tenga fichajes aunque no la tenga, para que un ciclo
+     * registrado nunca quede sin nadie a quien atribuírselo.
+     *
+     * No filtra por el rol "administrativo": fichar depende del permiso
+     * View:FichajeWidget y del gate de super-admin, así que un admin puede
+     * fichar sin tener ese rol y quedaba invisible en todos los selectores.
      *
      * @return array<int, string>
      */
-    public static function administrativoOptions(): array
+    public static function fichajeOptions(): array
     {
         return static::query()
-            ->whereHas('roles', fn (Builder $query): Builder => $query->where('name', 'administrativo'))
+            ->where(fn (Builder $query): Builder => $query
+                ->whereNotNull('hourly_rate')
+                ->orWhereHas('timeEntries'))
+            ->orderBy('name')
+            ->pluck('name', 'id')
+            ->all();
+    }
+
+    /**
+     * Solo los que tienen ciclos cerrados sin liquidar, para el selector de
+     * "Liquidar honorarios": elegir a alguien sin nada pendiente no lleva a
+     * ningún lado.
+     *
+     * @return array<int, string>
+     */
+    public static function conFichajesPendientesOptions(): array
+    {
+        return static::query()
+            ->whereHas('timeEntries', fn (Builder $query): Builder => $query
+                ->whereNotNull('ended_at')
+                ->whereNull('time_entry_settlement_id'))
             ->orderBy('name')
             ->pluck('name', 'id')
             ->all();

@@ -80,7 +80,7 @@ class TimeEntriesReport extends Page implements HasTable
             ->filters([
                 SelectFilter::make('user_id')
                     ->label('Empleado')
-                    ->options(fn (): array => User::administrativoOptions()),
+                    ->options(fn (): array => User::fichajeOptions()),
                 SelectFilter::make('liquidacion')
                     ->label('Estado')
                     ->options(self::ESTADOS_LIQUIDACION)
@@ -151,7 +151,10 @@ class TimeEntriesReport extends Page implements HasTable
             ->schema([
                 Select::make('user_id')
                     ->label('Empleado')
-                    ->options(fn (): array => User::administrativoOptions())
+                    ->options(fn (): array => User::conFichajesPendientesOptions())
+                    ->helperText(fn (): ?string => User::conFichajesPendientesOptions() === []
+                        ? 'No hay fichajes cerrados pendientes de liquidar.'
+                        : null)
                     ->required()
                     ->live(),
                 DatePicker::make('hasta')

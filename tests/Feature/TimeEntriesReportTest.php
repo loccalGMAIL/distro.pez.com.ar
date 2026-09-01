@@ -156,3 +156,53 @@ test('liquidar from the report registers the settlement and zeroes the counter',
         ->and($settlement->medio_pago)->toBe('transferencia')
         ->and(Livewire::test(TimeEntriesReport::class)->instance()->summaryRows())->toBeEmpty();
 });
+
+test('an employee without the administrativo role can still be liquidated if they have pending cycles', function () {
+    // Reproduce el caso real: un admin (o cualquiera sin el rol
+    // "administrativo") que fichó y tiene tarifa cargada tiene que poder
+    // liquidarse igual, porque fichar depende de un permiso, no del rol.
+    $employee = User::factory()->hourlyRate(2000)->create(['activo' => true]);
+
+    TimeEntry::factory()->for($employee)->create([
+        'started_at' => now()->subHours(3),
+        'ended_at' => now(),
+    ]);
+
+    expect(User::conFichajesPendientesOptions())->toHaveKey($employee->id);
+
+    Livewire::test(TimeEntriesReport::class)
+        ->callAction('liquidar', [
+            'user_id' => $employee->id,
+            'hasta' => now()->toDateString(),
+            'fecha_pago' => now()->toDateString(),
+            'medio_pago' => 'efectivo',
+        ])
+        ->assertHasNoActionErrors();
+
+    expect(TimeEntrySettlement::query()->where('user_id', $employee->id)->exists())->toBeTrue();
+});
+
+test('an employee without pending cycles is not offered in the liquidar selector', function () {
+    $employee = User::factory()->administrativo()->hourlyRate(1000)->create();
+
+    expect(User::conFichajesPendientesOptions())->not->toHaveKey($employee->id)
+        ->and(User::fichajeOptions())->toHaveKey($employee->id);
+});
+
+test('fichajeOptions includes users with a rate or with time entries, and excludes users with neither', function () {
+    $conTarifa = User::factory()->hourlyRate(1500)->create();
+
+    $conFichajes = User::factory()->create(['hourly_rate' => null]);
+    TimeEntry::factory()->for($conFichajes)->create([
+        'started_at' => now()->subHours(1),
+        'ended_at' => now(),
+    ]);
+
+    $sinNada = User::factory()->create(['hourly_rate' => null]);
+
+    $options = User::fichajeOptions();
+
+    expect($options)->toHaveKey($conTarifa->id)
+        ->and($options)->toHaveKey($conFichajes->id)
+        ->and($options)->not->toHaveKey($sinNada->id);
+});
