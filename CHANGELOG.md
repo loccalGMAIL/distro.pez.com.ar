@@ -8,6 +8,44 @@ y este proyecto sigue [Semantic Versioning](https://semver.org/lang/es/) (ver
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-09-01
+
+### Added
+
+- Liquidación de honorarios de fichaje. Hasta ahora el reporte sumaba todos
+  los ciclos cerrados para siempre: no había forma de asentar que un período
+  ya se pagó, así que el "a cobrar" nunca volvía a cero. Ahora, desde
+  Configuración → Reporte de fichajes, el botón "Liquidar honorarios" toma
+  todo lo pendiente de un empleado hasta una fecha de corte, muestra el
+  detalle (ciclos, horas, tarifa y total) antes de confirmar y deja asentado
+  el pago con su fecha, medio de pago y referencia. Los fichajes liquidados
+  dejan de contar como pendientes, así que el contador arranca de cero para
+  el período siguiente.
+- Confirmar una liquidación genera además el egreso en Finanzas: un gasto
+  con categoría "Honorarios" (se crea sola la primera vez) a nombre del
+  empleado, por el total liquidado y con el mismo medio de pago. El
+  comprobante del gasto lleva el número de la liquidación (`LIQ-000001`)
+  para poder cruzarlos a ojo.
+- Nueva pantalla Configuración → Liquidaciones con el historial: empleado,
+  período, horas, tarifa, total, fecha y medio de pago, y quién la hizo.
+  Desde ahí se descarga el recibo de honorarios en PDF (con el detalle de
+  los ciclos incluidos y espacio de firma) y se puede anular una
+  liquidación: los fichajes vuelven a contar como pendientes y el gasto
+  asociado se da de baja. La liquidación anulada no se borra, queda
+  marcada como tal para poder auditar que el pago existió y se revirtió.
+- El reporte de fichajes suma un filtro de estado —"Pendientes de liquidar"
+  (por defecto), "Liquidados" o todos— y una columna que muestra a qué
+  liquidación pertenece cada ciclo. El filtro también viaja al PDF.
+
+### Changed
+
+- La tarifa horaria de un fichaje ya liquidado queda congelada al momento
+  del pago. Antes el "a cobrar" se calculaba siempre contra la
+  `hourly_rate` vigente del usuario, así que cambiarle la tarifa reescribía
+  retroactivamente todo su histórico. Ahora eso sólo afecta a los fichajes
+  todavía pendientes: un recibo ya emitido no se mueve. Los fichajes
+  pendientes siguen valorizándose con la tarifa vigente, como hasta ahora.
+
 ## [0.7.6] - 2026-08-31
 
 ### Changed

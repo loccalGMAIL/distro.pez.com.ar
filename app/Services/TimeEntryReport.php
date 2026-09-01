@@ -15,6 +15,7 @@ class TimeEntryReport
         private readonly ?int $userId = null,
         private readonly ?string $desde = null,
         private readonly ?string $hasta = null,
+        private readonly ?string $liquidacion = null,
     ) {}
 
     /**
@@ -22,8 +23,8 @@ class TimeEntryReport
      */
     public function entries(): Collection
     {
-        return TimeEntry::closedQuery($this->userId, $this->desde, $this->hasta)
-            ->with('user')
+        return TimeEntry::closedQuery($this->userId, $this->desde, $this->hasta, $this->liquidacion)
+            ->with(['user', 'settlement'])
             ->orderBy('started_at')
             ->get();
     }
