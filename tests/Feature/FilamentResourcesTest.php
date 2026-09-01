@@ -20,13 +20,15 @@ $resources = [
     'settings/users',
     'settings/activity-logs',
     'settings/time-entries',
+    'settings/time-entry-settlements',
     'settings/perception-types',
 ];
 
 // Ventas y Compras no tienen página /create propia (se crean por modal desde
-// el listado); ActivityLogs es de solo lectura (sin create page). Se
-// excluyen del chequeo genérico de "create page loads".
-$createableResources = array_values(array_diff($resources, ['sales/sales', 'purchases/purchases', 'settings/activity-logs']));
+// el listado); ActivityLogs y Liquidaciones son de solo lectura (las
+// liquidaciones se generan desde el Reporte de fichajes). Se excluyen del
+// chequeo genérico de "create page loads".
+$createableResources = array_values(array_diff($resources, ['sales/sales', 'purchases/purchases', 'settings/activity-logs', 'settings/time-entry-settlements']));
 
 test('each filament resource index page loads for an admin', function (string $resource) {
     $admin = User::factory()->admin()->create(['activo' => true]);

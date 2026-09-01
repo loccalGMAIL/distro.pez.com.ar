@@ -23,7 +23,7 @@ class RolePermissionSeeder extends Seeder
     /**
      * @var array<int, string>
      */
-    private array $adminOnlySubjects = ['User', 'Role', 'Activity', 'TimeEntry', 'FichajeWidget', 'TimeEntriesReport'];
+    private array $adminOnlySubjects = ['User', 'Role', 'Activity', 'TimeEntry', 'TimeEntrySettlement', 'FichajeWidget', 'TimeEntriesReport'];
 
     public function run(): void
     {
