@@ -83,7 +83,11 @@ test('anular on a draft sale with no stock movements just voids it', function ()
 
 test('anular reverses payment allocations tied to the sale', function () {
     $sale = Sale::factory()->create(['status' => 'confirmada']);
-    $payment = Payment::factory()->create(['sin_imputar' => 0]);
+    // monto explícito e igual a la allocation: sin_imputar ahora se deriva
+    // de monto − imputado, ya no es un contador manual, así que un monto
+    // aleatorio (el default de la factory) daría un sin_imputar distinto
+    // de 500 tras desimputar.
+    $payment = Payment::factory()->create(['monto' => 500, 'sin_imputar' => 0]);
     $allocation = PaymentAllocation::factory()->create([
         'payment_id' => $payment->id,
         'allocatable_type' => Sale::class,

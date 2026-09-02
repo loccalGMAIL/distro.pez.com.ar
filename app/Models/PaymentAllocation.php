@@ -37,25 +37,44 @@ class PaymentAllocation extends Model
     /**
      * Imputar o desimputar un pago cambia cuánto debe el proveedor: cada
      * alta/edición/baja de una allocation sobre una Purchase recalcula su
-     * saldo y el balance del proveedor. Es el único punto que cubre todos
-     * los caminos de escritura (el RelationManager de Pagos es genérico y
-     * no tiene hooks propios, y Purchase::anular() también borra
-     * allocations en su loop de reversión).
+     * saldo y el balance del proveedor, y en cualquier caso (Purchase o
+     * Sale) recalcula el `sin_imputar` del pago. Es el único punto que
+     * cubre todos los caminos de escritura (el RelationManager de Pagos es
+     * genérico y no tiene hooks propios, y Purchase::anular()/Sale::anular()
+     * también borran allocations en su loop de reversión).
      */
     protected static function booted(): void
     {
-        static::saved(fn (PaymentAllocation $allocation) => $allocation->syncPurchaseBalance());
-        static::deleted(fn (PaymentAllocation $allocation) => $allocation->syncPurchaseBalance());
+        static::saved(fn (PaymentAllocation $allocation) => $allocation->sync());
+        static::deleted(fn (PaymentAllocation $allocation) => $allocation->sync());
     }
 
-    private function syncPurchaseBalance(): void
+    /**
+     * `sin_imputar` del pago se recalcula primero porque el balance del
+     * proveedor (Supplier::recalcularBalance()) depende de él para netear
+     * el saldo a favor de los pagos sin aplicar.
+     *
+     * `->fresh()` en vez de la propiedad de relación directa: esta misma
+     * instancia de PaymentAllocation puede disparar `sync()` varias veces
+     * (alta y después edición) y Eloquent cachea la relación una vez
+     * cargada, así que si el Payment o el allocatable se modificaron por
+     * otro lado (otra instancia en memoria del mismo registro) entre una
+     * llamada y la siguiente, `$this->payment`/`$this->allocatable` sin
+     * `fresh()` devolverían el valor cacheado viejo, no el que hay en la
+     * base.
+     */
+    private function sync(): void
     {
-        if (! $this->allocatable instanceof Purchase) {
+        $this->payment?->fresh()?->recalcularSinImputar();
+
+        $allocatable = $this->allocatable?->fresh();
+
+        if (! $allocatable instanceof Purchase) {
             return;
         }
 
-        $this->allocatable->recalcularSaldo();
-        $this->allocatable->supplier->recalcularBalance();
+        $allocatable->recalcularSaldo();
+        $allocatable->supplier->recalcularBalance();
     }
 
     /**
