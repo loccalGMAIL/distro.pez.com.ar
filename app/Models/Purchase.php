@@ -214,7 +214,6 @@ class Purchase extends Model
                 });
 
             $this->paymentAllocations->each(function (PaymentAllocation $allocation) {
-                $allocation->payment->increment('sin_imputar', $allocation->monto);
                 $allocation->delete();
             });
 

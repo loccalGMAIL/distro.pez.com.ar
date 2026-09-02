@@ -3,15 +3,22 @@
 namespace App\Filament\Clusters\Finance\Resources\Payments\Tables;
 
 use App\Models\Customer;
+use App\Models\Payment;
 use App\Models\Supplier;
+use App\Services\PaymentAllocator;
+use Filament\Actions\Action;
+use Filament\Actions\BulkAction;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Actions\ForceDeleteBulkAction;
 use Filament\Actions\RestoreBulkAction;
+use Filament\Notifications\Notification;
+use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\TrashedFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Collection;
 
 class PaymentsTable
 {
@@ -32,7 +39,7 @@ class PaymentsTable
                 TextColumn::make('direccion')
                     ->badge(),
                 TextColumn::make('fecha')
-                    ->date()
+                    ->date('d/m/Y')
                     ->sortable(),
                 TextColumn::make('monto')
                     ->money('ARS', locale: 'es_AR')
@@ -62,6 +69,15 @@ class PaymentsTable
                 TrashedFilter::make(),
             ])
             ->recordActions([
+                Action::make('imputar')
+                    ->label('Imputar')
+                    ->icon(Heroicon::OutlinedBanknotes)
+                    ->visible(fn (Payment $record): bool => (float) $record->sin_imputar > 0)
+                    ->action(function (Payment $record) {
+                        app(PaymentAllocator::class)->allocate($record);
+
+                        Notification::make()->title('Pago imputado')->success()->send();
+                    }),
                 EditAction::make(),
             ])
             ->toolbarActions([
@@ -69,6 +85,21 @@ class PaymentsTable
                     DeleteBulkAction::make(),
                     ForceDeleteBulkAction::make(),
                     RestoreBulkAction::make(),
+                    BulkAction::make('imputar')
+                        ->label('Imputar automáticamente')
+                        ->icon(Heroicon::OutlinedBanknotes)
+                        ->action(function (Collection $records) {
+                            $allocator = app(PaymentAllocator::class);
+
+                            foreach ($records as $record) {
+                                if ($record instanceof Payment) {
+                                    $allocator->allocate($record);
+                                }
+                            }
+
+                            Notification::make()->title('Pagos imputados')->success()->send();
+                        })
+                        ->deselectRecordsAfterCompletion(),
                 ]),
             ]);
     }

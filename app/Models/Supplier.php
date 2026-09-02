@@ -69,13 +69,19 @@ class Supplier extends Model
 
     /**
      * Recalcula `balance` desde la fuente de verdad (suma de `saldo` de
-     * todas sus compras) en vez de incrementar/decrementar a mano. No hace
-     * falta filtrar por status: una compra en `borrador`/`anulada` ya tiene
-     * `saldo = 0` (ver `Purchase::recalcularSaldo()`).
+     * todas sus compras, neta de lo que le quede sin imputar de sus pagos)
+     * en vez de incrementar/decrementar a mano. No hace falta filtrar
+     * compras por status: una compra en `borrador`/`anulada` ya tiene
+     * `saldo = 0` (ver `Purchase::recalcularSaldo()`). Solo se restan los
+     * pagos de `egreso` (lo que le pagamos al proveedor) — un `ingreso`
+     * sería una devolución del proveedor hacia nosotros, no un anticipo
+     * nuestro, así que no corresponde netearlo acá.
      */
     public function recalcularBalance(): void
     {
-        $balance = (float) $this->purchases()->sum('saldo');
+        $deuda = (float) $this->purchases()->sum('saldo');
+        $aFavor = (float) $this->payments()->where('direccion', 'egreso')->sum('sin_imputar');
+        $balance = $deuda - $aFavor;
 
         if ((float) $this->balance !== $balance) {
             $this->update(['balance' => $balance]);

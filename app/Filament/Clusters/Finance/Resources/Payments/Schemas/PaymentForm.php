@@ -62,10 +62,12 @@ class PaymentForm
                 TextInput::make('referencia'),
                 TextInput::make('sin_imputar')
                     ->label('Sin imputar')
-                    ->required()
+                    ->helperText('Calculado: monto menos lo imputado a comprobantes. No se edita a mano.')
                     ->numeric()
                     ->prefix('$')
-                    ->default(0.0),
+                    ->default(0.0)
+                    ->disabled()
+                    ->dehydrated(false),
                 Select::make('user_id')
                     ->label('Usuario')
                     ->relationship('user', 'name')

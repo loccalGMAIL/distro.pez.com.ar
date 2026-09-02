@@ -8,6 +8,47 @@ y este proyecto sigue [Semantic Versioning](https://semver.org/lang/es/) (ver
 
 ## [Unreleased]
 
+## [0.8.1] - 2026-09-02
+
+### Fixed
+
+- Registrar un pago a un proveedor no descontaba nada: el saldo del
+  proveedor y el de sus facturas de compra quedaban intactos porque crear
+  un pago no generaba ninguna imputación, había que entrar a editarlo y
+  cargar cada imputación a mano una por una. Ahora, al guardar un pago de
+  egreso, se reparte solo entre las compras confirmadas del proveedor con
+  saldo pendiente, de la más vieja a la más nueva, hasta agotar el monto.
+- La columna "Sin imputar" de un pago mostraba lo que se hubiera tipeado a
+  mano (quedaba en $0 por defecto) en vez de lo que realmente quedaba sin
+  aplicar a ningún comprobante. Ahora es un valor calculado —monto menos lo
+  imputado— y el campo dejó de ser editable.
+- Borrar un pago dejaba sus imputaciones vivas: la factura seguía
+  descontada por un pago que ya no existía. Ahora, al borrar (o restaurar)
+  un pago, sus imputaciones se revierten (o se vuelven a repartir) con él.
+- El selector de comprobante al imputar un pago a mano listaba todas las
+  compras y ventas del sistema sin distinguir proveedor ni estado —incluía
+  las de otro proveedor y hasta las anuladas—. Ahora solo muestra los
+  comprobantes confirmados de la misma contraparte del pago.
+- Los selectores de empleado del módulo de fichajes (liquidar honorarios,
+  cargar un fichaje) filtraban por el rol "administrativo", que no existe
+  en esta base, así que el único empleado con fichajes pendientes nunca
+  aparecía. Ahora listan por tarifa horaria cargada o fichajes ya
+  registrados; el de "Liquidar honorarios" muestra además solo a quienes
+  tengan ciclos pendientes.
+
+### Changed
+
+- El saldo de un proveedor pasa a ser neto: si un pago queda con un
+  remanente sin aplicar a ninguna factura (por sobrepago o simplemente
+  porque no había deuda suficiente), ese remanente ahora resta de la
+  deuda en vez de quedar invisible.
+
+### Added
+
+- Acción "Imputar automáticamente" en Pagos (por fila y en lote), para
+  repartir entre las facturas pendientes los pagos que ya estaban
+  cargados sin tener que volver a crearlos.
+
 ## [0.8.0] - 2026-09-01
 
 ### Added

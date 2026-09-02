@@ -65,7 +65,7 @@ test('anular zeroes out saldo and removes the debt from the supplier balance', f
     expect((float) $supplier->fresh()->balance)->toBe(0.0);
 });
 
-test('a partial payment reduces saldo and supplier balance, and anular restores both to zero', function () {
+test('a partial payment reduces saldo and supplier balance, and anular restores the saldo but leaves the payment as a credit', function () {
     $supplier = Supplier::factory()->create(['balance' => 0]);
     $purchase = Purchase::factory()->create(['status' => 'borrador', 'supplier_id' => $supplier->id, 'total' => 1000]);
     $purchase->confirmar();
@@ -88,9 +88,13 @@ test('a partial payment reduces saldo and supplier balance, and anular restores 
 
     $purchase->anular();
 
+    // El saldo de la compra vuelve a 0 (una compra anulada no genera
+    // deuda), pero los $400 ya cobrados quedan sin ningún comprobante al
+    // que aplicarse: Payment::sin_imputar los recupera y el balance neto
+    // del proveedor queda en -400 (le debemos esa plata), no en 0.
     expect((float) $purchase->fresh()->saldo)->toBe(0.0);
-    expect((float) $supplier->fresh()->balance)->toBe(0.0);
     expect((float) $payment->fresh()->sin_imputar)->toBe(400.0);
+    expect((float) $supplier->fresh()->balance)->toBe(-400.0);
 });
 
 test('anular on a confirmed purchase reverses stock and sets status to anulada without touching costo_ultimo', function () {
@@ -159,7 +163,11 @@ test('anular on a draft purchase with no stock movements just voids it', functio
 
 test('anular reverses payment allocations tied to the purchase', function () {
     $purchase = Purchase::factory()->create(['status' => 'confirmada']);
-    $payment = Payment::factory()->create(['sin_imputar' => 0]);
+    // monto explícito e igual a la allocation: sin_imputar ahora se deriva
+    // de monto − imputado, ya no es un contador manual, así que un monto
+    // aleatorio (el default de la factory) daría un sin_imputar distinto
+    // de 500 tras desimputar.
+    $payment = Payment::factory()->create(['monto' => 500, 'sin_imputar' => 0]);
     $allocation = PaymentAllocation::factory()->create([
         'payment_id' => $payment->id,
         'allocatable_type' => Purchase::class,
