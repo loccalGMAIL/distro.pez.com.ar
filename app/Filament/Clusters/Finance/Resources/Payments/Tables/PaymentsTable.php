@@ -39,7 +39,7 @@ class PaymentsTable
                 TextColumn::make('direccion')
                     ->badge(),
                 TextColumn::make('fecha')
-                    ->date()
+                    ->date('d/m/Y')
                     ->sortable(),
                 TextColumn::make('monto')
                     ->money('ARS', locale: 'es_AR')
