@@ -36,6 +36,7 @@ use Filament\Schemas\Components\Wizard;
 use Filament\Schemas\Components\Wizard\Step;
 use Filament\Schemas\Schema;
 use Filament\Support\Enums\Alignment;
+use Filament\Support\Enums\Size;
 use Filament\Support\Exceptions\Halt;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Support\Facades\DB;
@@ -74,6 +75,19 @@ class ScanPurchase extends Page
      * @var array<string, mixed>
      */
     public array $ocrData = [];
+
+    /**
+     * Si la columna "Detectado por la IA" (texto crudo leído por la IA) está
+     * desplegada, en las grillas de líneas y percepciones. Oculta por
+     * defecto — solo sirve de referencia ocasional para verificar una línea
+     * dudosa — y se despliega con el botón correspondiente.
+     */
+    public bool $showAiColumn = false;
+
+    public function toggleAiColumn(): void
+    {
+        $this->showAiColumn = ! $this->showAiColumn;
+    }
 
     public function mount(): void
     {
@@ -198,12 +212,22 @@ class ScanPurchase extends Page
                 ->preload()
                 ->required(),
 
+            Actions::make([
+                Action::make('toggleAiColumn')
+                    ->label($this->showAiColumn ? 'Ocultar detección IA' : 'Mostrar detección IA')
+                    ->icon($this->showAiColumn ? Heroicon::OutlinedChevronDoubleLeft : Heroicon::OutlinedChevronDoubleRight)
+                    ->color('gray')
+                    ->size(Size::Small)
+                    ->action(fn () => $this->toggleAiColumn()),
+            ])
+                ->columnSpanFull(),
+
             Repeater::make('lineas')
                 ->label('Líneas')
                 ->live()
                 ->afterStateUpdated(fn (Get $get, Set $set) => $this->recalculateTotals($get, $set))
                 ->table([
-                    TableColumn::make('Detectado por la IA'),
+                    ...($this->showAiColumn ? [TableColumn::make('Detectado por la IA')] : []),
                     TableColumn::make('Producto'),
                     TableColumn::make('Cantidad')->width('90px'),
                     TableColumn::make('Costo unit.')->width('120px')->alignment(Alignment::End),
@@ -213,12 +237,14 @@ class ScanPurchase extends Page
                 ->compact()
                 ->schema([
                     Hidden::make('description_key'),
-                    TextInput::make('descripcion')
-                        ->hiddenLabel()
-                        ->disabled()
-                        ->dehydrated()
-                        ->helperText(fn (Get $get): ?string => $get('unidad') ? "Unidad detectada: {$get('unidad')}" : null)
-                        ->extraInputAttributes(['style' => 'font-size: 0.75rem;']),
+                    $this->showAiColumn
+                        ? TextInput::make('descripcion')
+                            ->hiddenLabel()
+                            ->disabled()
+                            ->dehydrated()
+                            ->helperText(fn (Get $get): ?string => $get('unidad') ? "Unidad detectada: {$get('unidad')}" : null)
+                            ->extraInputAttributes(['style' => 'font-size: 0.75rem;'])
+                        : Hidden::make('descripcion'),
                     Hidden::make('unidad'),
                     Select::make('product_id')
                         ->label('Producto')
@@ -297,7 +323,7 @@ class ScanPurchase extends Page
                 ->live()
                 ->afterStateUpdated(fn (Get $get, Set $set) => $this->recalculateTotals($get, $set))
                 ->table([
-                    TableColumn::make('Detectado por la IA'),
+                    ...($this->showAiColumn ? [TableColumn::make('Detectado por la IA')] : []),
                     TableColumn::make('Tipo'),
                     TableColumn::make('%')->width('90px')->alignment(Alignment::End),
                     TableColumn::make('Monto')->width('120px')->alignment(Alignment::End),
@@ -305,11 +331,13 @@ class ScanPurchase extends Page
                 ->compact()
                 ->schema([
                     Hidden::make('description_key'),
-                    TextInput::make('descripcion')
-                        ->hiddenLabel()
-                        ->disabled()
-                        ->dehydrated()
-                        ->extraInputAttributes(['style' => 'font-size: 0.75rem;']),
+                    $this->showAiColumn
+                        ? TextInput::make('descripcion')
+                            ->hiddenLabel()
+                            ->disabled()
+                            ->dehydrated()
+                            ->extraInputAttributes(['style' => 'font-size: 0.75rem;'])
+                        : Hidden::make('descripcion'),
                     Select::make('perception_type_id')
                         ->label('Tipo')
                         ->hiddenLabel()

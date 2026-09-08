@@ -283,9 +283,18 @@ class InvoiceExtractor
             ->map(function (array $line) use ($catalogIds): array {
                 $descripcion = (string) ($line['descripcion'] ?? '');
                 $cantidad = $this->parseDecimal($line['cantidad'] ?? null) ?? 0.0;
-                $precioUnitario = $this->parseDecimal($line['precio_unitario'] ?? null) ?? 0.0;
-                $subtotal = $this->parseDecimal($line['subtotal'] ?? null);
+                $precioUnitarioFromAi = $this->parseDecimal($line['precio_unitario'] ?? null);
+                $subtotalFromAi = $this->parseDecimal($line['subtotal'] ?? null);
                 $matchedId = $line['matched_product_id'] ?? null;
+
+                // Si la IA no leyó (o el comprobante no imprime, caso común en
+                // remitos que solo muestran cantidad + subtotal por línea) el
+                // precio unitario, se deriva dividiendo el subtotal por la
+                // cantidad — no es que la IA "haga la cuenta", es aritmética
+                // determinística acá en PHP sobre dos valores que sí
+                // transcribió. Sin esto el costo unitario quedaba en $0.
+                $precioUnitario = $precioUnitarioFromAi
+                    ?? ($subtotalFromAi !== null && $cantidad > 0 ? round($subtotalFromAi / $cantidad, 4) : 0.0);
 
                 return [
                     'descripcion' => $descripcion,
@@ -293,9 +302,9 @@ class InvoiceExtractor
                     'cantidad' => $cantidad,
                     'unidad' => $this->normalizeUnit($line['unidad'] ?? null),
                     'precio_unitario' => $precioUnitario,
-                    'subtotal' => $subtotal ?? round($cantidad * $precioUnitario, 2),
+                    'subtotal' => $subtotalFromAi ?? round($cantidad * $precioUnitario, 2),
                     'matched_product_id' => in_array($matchedId, $catalogIds, true) ? (int) $matchedId : null,
-                    'consistente' => $subtotal === null || abs($subtotal - ($cantidad * $precioUnitario)) <= max(self::CONSISTENCY_TOLERANCE, $subtotal * 0.02),
+                    'consistente' => $subtotalFromAi === null || abs($subtotalFromAi - ($cantidad * $precioUnitario)) <= max(self::CONSISTENCY_TOLERANCE, $subtotalFromAi * 0.02),
                 ];
             })
             ->values()

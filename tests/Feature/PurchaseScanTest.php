@@ -71,6 +71,40 @@ test('capturing an invoice extracts data and prefills the review step', function
         ->assertSet('data.fecha', '2026-06-02');
 });
 
+test('the "Detectado por la IA" column is hidden by default and toggleable', function () {
+    Product::factory()->create(['activo' => true, 'costo_ultimo' => 100]);
+
+    fakeClaudeExtraction([
+        'proveedor' => null, 'cuit' => null, 'tipo_comprobante' => 'factura_a',
+        'punto_venta' => null, 'numero' => null, 'fecha' => null, 'vencimiento' => null,
+        'subtotal' => '1000', 'total' => '1000',
+        'lineas' => [
+            [
+                'descripcion' => 'Descripción rara del proveedor',
+                'cantidad' => '10',
+                'unidad' => 'u',
+                'precio_unitario' => '100',
+                'subtotal' => '1000',
+                'matched_product_id' => null,
+            ],
+        ],
+    ]);
+
+    $component = Livewire::test(ScanPurchase::class)
+        ->fillForm(['upload' => UploadedFile::fake()->image('factura.jpg', 800, 600)])
+        ->goToNextWizardStep()
+        ->assertSet('showAiColumn', false)
+        ->assertDontSee('Detectado por la IA');
+
+    $component->call('toggleAiColumn')
+        ->assertSet('showAiColumn', true)
+        ->assertSee('Detectado por la IA');
+
+    $component->call('toggleAiColumn')
+        ->assertSet('showAiColumn', false)
+        ->assertDontSee('Detectado por la IA');
+});
+
 test('confirming after a scan creates a draft purchase with its lines and remembers the product link', function () {
     $supplier = Supplier::factory()->create(['razon_social' => 'Bebidas Andinas S.A.', 'activo' => true]);
     $product = Product::factory()->create(['activo' => true, 'costo_ultimo' => 100]);

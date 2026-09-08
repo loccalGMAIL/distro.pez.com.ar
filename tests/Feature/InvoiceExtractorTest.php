@@ -143,6 +143,40 @@ test('extract flags a line as inconsistent when quantity times price does not ma
     expect($result['lineas'][0]['consistente'])->toBeFalse();
 });
 
+test('extract derives precio_unitario from subtotal/cantidad when the AI omits it', function () {
+    fakeClaudeResponse([
+        'proveedor' => null, 'cuit' => null, 'tipo_comprobante' => null,
+        'punto_venta' => null, 'numero' => null, 'fecha' => null, 'vencimiento' => null,
+        'subtotal' => null, 'total' => null,
+        'lineas' => [
+            // Remito típico: solo cantidad y subtotal por línea, sin columna de precio unitario.
+            ['descripcion' => 'A', 'cantidad' => '4', 'unidad' => 'u', 'subtotal' => '200', 'matched_product_id' => null],
+        ],
+    ]);
+
+    $result = app(InvoiceExtractor::class)->extract($this->fakeImagePath, 'image/jpeg');
+
+    expect($result['lineas'][0]['precio_unitario'])->toBe(50.0);
+    expect($result['lineas'][0]['subtotal'])->toBe(200.0);
+    expect($result['lineas'][0]['consistente'])->toBeTrue();
+});
+
+test('extract leaves precio_unitario at 0 when neither it nor the subtotal are present', function () {
+    fakeClaudeResponse([
+        'proveedor' => null, 'cuit' => null, 'tipo_comprobante' => null,
+        'punto_venta' => null, 'numero' => null, 'fecha' => null, 'vencimiento' => null,
+        'subtotal' => null, 'total' => null,
+        'lineas' => [
+            ['descripcion' => 'A', 'cantidad' => '4', 'unidad' => 'u', 'matched_product_id' => null],
+        ],
+    ]);
+
+    $result = app(InvoiceExtractor::class)->extract($this->fakeImagePath, 'image/jpeg');
+
+    expect($result['lineas'][0]['precio_unitario'])->toBe(0.0);
+    expect($result['lineas'][0]['subtotal'])->toBe(0.0);
+});
+
 test('extract returns null fecha instead of guessing an implausible format', function () {
     fakeClaudeResponse([
         'proveedor' => null, 'cuit' => null, 'tipo_comprobante' => null,
