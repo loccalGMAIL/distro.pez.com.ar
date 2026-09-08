@@ -36,6 +36,7 @@ use Filament\Schemas\Components\Wizard;
 use Filament\Schemas\Components\Wizard\Step;
 use Filament\Schemas\Schema;
 use Filament\Support\Enums\Alignment;
+use Filament\Support\Enums\Size;
 use Filament\Support\Exceptions\Halt;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Support\Facades\DB;
@@ -74,6 +75,19 @@ class ScanPurchase extends Page
      * @var array<string, mixed>
      */
     public array $ocrData = [];
+
+    /**
+     * Si la columna "Detectado por la IA" (texto crudo leído por la IA) está
+     * desplegada, en las grillas de líneas y percepciones. Oculta por
+     * defecto — solo sirve de referencia ocasional para verificar una línea
+     * dudosa — y se despliega con el botón correspondiente.
+     */
+    public bool $showAiColumn = false;
+
+    public function toggleAiColumn(): void
+    {
+        $this->showAiColumn = ! $this->showAiColumn;
+    }
 
     public function mount(): void
     {
@@ -198,26 +212,39 @@ class ScanPurchase extends Page
                 ->preload()
                 ->required(),
 
+            Actions::make([
+                Action::make('toggleAiColumn')
+                    ->label($this->showAiColumn ? 'Ocultar detección IA' : 'Mostrar detección IA')
+                    ->icon($this->showAiColumn ? Heroicon::OutlinedChevronDoubleLeft : Heroicon::OutlinedChevronDoubleRight)
+                    ->color('gray')
+                    ->size(Size::Small)
+                    ->action(fn () => $this->toggleAiColumn()),
+            ])
+                ->columnSpanFull(),
+
             Repeater::make('lineas')
                 ->label('Líneas')
                 ->live()
                 ->afterStateUpdated(fn (Get $get, Set $set) => $this->recalculateTotals($get, $set))
                 ->table([
-                    TableColumn::make('Detectado por la IA'),
+                    ...($this->showAiColumn ? [TableColumn::make('Detectado por la IA')] : []),
                     TableColumn::make('Producto'),
                     TableColumn::make('Cantidad')->width('90px'),
                     TableColumn::make('Costo unit.')->width('120px')->alignment(Alignment::End),
                     TableColumn::make('Subtotal')->width('120px')->alignment(Alignment::End),
+                    TableColumn::make('Costo final')->width('120px')->alignment(Alignment::End),
                 ])
                 ->compact()
                 ->schema([
                     Hidden::make('description_key'),
-                    TextInput::make('descripcion')
-                        ->hiddenLabel()
-                        ->disabled()
-                        ->dehydrated()
-                        ->helperText(fn (Get $get): ?string => $get('unidad') ? "Unidad detectada: {$get('unidad')}" : null)
-                        ->extraInputAttributes(['style' => 'font-size: 0.75rem;']),
+                    $this->showAiColumn
+                        ? TextInput::make('descripcion')
+                            ->hiddenLabel()
+                            ->disabled()
+                            ->dehydrated()
+                            ->helperText(fn (Get $get): ?string => $get('unidad') ? "Unidad detectada: {$get('unidad')}" : null)
+                            ->extraInputAttributes(['style' => 'font-size: 0.75rem;'])
+                        : Hidden::make('descripcion'),
                     Hidden::make('unidad'),
                     Select::make('product_id')
                         ->label('Producto')
@@ -278,6 +305,13 @@ class ScanPurchase extends Page
                         ->numeric(decimalPlaces: 2, decimalSeparator: ',', thousandsSeparator: '.')
                         ->prefix('$')
                         ->extraAttributes(['style' => 'display: block; text-align: right; font-size: 0.75rem;']),
+                    TextEntry::make('costo_final_display')
+                        ->hiddenLabel()
+                        ->state(fn (Get $get) => $this->previewCostoFinal($get))
+                        ->numeric(decimalPlaces: 2, decimalSeparator: ',', thousandsSeparator: '.')
+                        ->prefix('$')
+                        ->tooltip('Costo unitario con los impuestos que afectan costo ya prorrateados')
+                        ->extraAttributes(['style' => 'display: block; text-align: right; font-size: 0.75rem;']),
                 ])
                 ->addActionLabel('Agregar línea')
                 ->required()
@@ -289,18 +323,21 @@ class ScanPurchase extends Page
                 ->live()
                 ->afterStateUpdated(fn (Get $get, Set $set) => $this->recalculateTotals($get, $set))
                 ->table([
-                    TableColumn::make('Detectado por la IA'),
+                    ...($this->showAiColumn ? [TableColumn::make('Detectado por la IA')] : []),
                     TableColumn::make('Tipo'),
+                    TableColumn::make('%')->width('90px')->alignment(Alignment::End),
                     TableColumn::make('Monto')->width('120px')->alignment(Alignment::End),
                 ])
                 ->compact()
                 ->schema([
                     Hidden::make('description_key'),
-                    TextInput::make('descripcion')
-                        ->hiddenLabel()
-                        ->disabled()
-                        ->dehydrated()
-                        ->extraInputAttributes(['style' => 'font-size: 0.75rem;']),
+                    $this->showAiColumn
+                        ? TextInput::make('descripcion')
+                            ->hiddenLabel()
+                            ->disabled()
+                            ->dehydrated()
+                            ->extraInputAttributes(['style' => 'font-size: 0.75rem;'])
+                        : Hidden::make('descripcion'),
                     Select::make('perception_type_id')
                         ->label('Tipo')
                         ->hiddenLabel()
@@ -310,9 +347,28 @@ class ScanPurchase extends Page
                             ->pluck('nombre', 'id')
                             ->all())
                         ->placeholder('Sin match — elegí uno o borrá la fila')
+                        ->live()
+                        ->afterStateUpdated(function (Get $get, Set $set, ?string $state) {
+                            $perceptionType = $state ? PerceptionType::find($state) : null;
+
+                            // La IA ya pudo haber traído su propio porcentaje leído del
+                            // comprobante; solo pisamos con el del catálogo si esta fila
+                            // todavía no tiene uno.
+                            if (! $perceptionType?->porcentaje || filled($get('porcentaje'))) {
+                                return;
+                            }
+
+                            $set('porcentaje', (string) $perceptionType->porcentaje);
+                            $this->recalculatePercepcionFromPorcentaje($get, $set);
+                        })
+                        ->helperText(fn (Get $get): ?string => filled($get('perception_type_id'))
+                            && ! (bool) PerceptionType::query()->whereKey($get('perception_type_id'))->first()?->afecta_costo
+                            ? 'No suma al costo'
+                            : null)
                         ->createOptionForm([
                             TextInput::make('nombre')
                                 ->required(),
+                            TextInput::make('porcentaje')->numeric()->suffix('%'),
                         ])
                         ->createOptionUsing(fn (array $data): int => PerceptionType::create([
                             ...$data,
@@ -322,6 +378,13 @@ class ScanPurchase extends Page
                             'nombre' => $get('descripcion'),
                         ]))
                         ->extraAttributes(['style' => 'min-width: 12rem;']),
+                    TextInput::make('porcentaje')
+                        ->hiddenLabel()
+                        ->numeric()
+                        ->suffix('%')
+                        ->live()
+                        ->extraInputAttributes(['style' => 'text-align: right; font-size: 0.75rem;'])
+                        ->afterStateUpdated(fn (Get $get, Set $set) => $this->recalculatePercepcionFromPorcentaje($get, $set)),
                     TextInput::make('monto')
                         ->hiddenLabel()
                         ->required()
@@ -466,6 +529,7 @@ class ScanPurchase extends Page
             'description_key' => $percepcion['description_key'],
             'descripcion' => $percepcion['descripcion'],
             'perception_type_id' => $rememberedPercepciones[$percepcion['description_key']] ?? $percepcion['matched_perception_type_id'],
+            'porcentaje' => $percepcion['porcentaje'] ?? null,
             'monto' => $percepcion['monto'],
         ])->all());
 
@@ -483,6 +547,66 @@ class ScanPurchase extends Page
             fn (string $key) => $get("../../{$key}"),
             fn (string $key, $value) => $set("../../{$key}", $value),
         );
+    }
+
+    /**
+     * Autocompleta `monto` a partir de `porcentaje` (el de esta fila, traído
+     * por la IA o del catálogo) aplicado sobre subtotal − descuento de la
+     * compra. El monto sigue siendo tipeable a mano.
+     */
+    private function recalculatePercepcionFromPorcentaje(Get $get, Set $set): void
+    {
+        $porcentaje = $get('porcentaje');
+
+        if (blank($porcentaje)) {
+            return;
+        }
+
+        $base = (float) ($get('../../subtotal') ?? 0) - (float) ($get('../../descuento') ?? 0);
+
+        $set('monto', round($base * ((float) $porcentaje / 100), 2));
+
+        $this->recalculateTotals(
+            fn (string $key) => $get("../../{$key}"),
+            fn (string $key, $value) => $set("../../{$key}", $value),
+        );
+    }
+
+    /**
+     * Previsualiza el costo unitario final de una línea (costo de factura +
+     * impuestos que afectan costo, prorrateados por neto) mientras se revisa
+     * la extracción, sin tocar la base. Misma fórmula que
+     * `PurchaseCostAllocator::distribuir()` salvo el ajuste de centavos por
+     * redondeo, que esa clase asigna a la línea de mayor subtotal — acá no
+     * hace falta reproducirlo, es solo una vista previa; el valor que se
+     * persiste de verdad se recalcula con el servicio real al confirmar la
+     * compra (`Purchase::aumentarStock()`).
+     */
+    private function previewCostoFinal(Get $get): float
+    {
+        $subtotal = (float) ($get('subtotal') ?? 0);
+        $cantidad = (float) ($get('cantidad') ?? 0);
+
+        if ($cantidad <= 0.0) {
+            return 0.0;
+        }
+
+        $netoTotal = collect($this->lineRows($get('../../lineas')))
+            ->sum(fn (array $linea): float => (float) ($linea['subtotal'] ?? 0));
+
+        if ($netoTotal <= 0.0) {
+            return round($subtotal / $cantidad, 4);
+        }
+
+        $impuestosQueAfectanCosto = collect($this->lineRows($get('../../perceptions')))
+            ->filter(fn (array $percepcion): bool => filled($percepcion['perception_type_id'] ?? null)
+                && (bool) PerceptionType::query()->whereKey($percepcion['perception_type_id'])->first()?->afecta_costo)
+            ->sum(fn (array $percepcion): float => (float) ($percepcion['monto'] ?? 0));
+
+        $descuento = (float) ($get('../../descuento') ?? 0);
+        $ajusteLinea = round(($impuestosQueAfectanCosto - $descuento) * ($subtotal / $netoTotal), 2);
+
+        return round(($subtotal + $ajusteLinea) / $cantidad, 4);
     }
 
     /**
@@ -595,6 +719,7 @@ class ScanPurchase extends Page
                 $purchase->perceptions()->create([
                     'perception_type_id' => $percepcion['perception_type_id'],
                     'descripcion' => $percepcion['descripcion'] ?? null,
+                    'porcentaje' => filled($percepcion['porcentaje'] ?? null) ? $percepcion['porcentaje'] : null,
                     'monto' => $monto,
                 ]);
 

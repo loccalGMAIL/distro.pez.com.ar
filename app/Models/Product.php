@@ -26,6 +26,7 @@ class Product extends Model
         'product_category_id',
         'base_unit',
         'costo_ultimo',
+        'costo_neto_ultimo',
         'min_stock',
         'tracks_lot',
         'activo',
@@ -35,6 +36,7 @@ class Product extends Model
     {
         return [
             'costo_ultimo' => 'decimal:4',
+            'costo_neto_ultimo' => 'decimal:4',
             'min_stock' => 'decimal:3',
             'tracks_lot' => 'boolean',
             'activo' => 'boolean',

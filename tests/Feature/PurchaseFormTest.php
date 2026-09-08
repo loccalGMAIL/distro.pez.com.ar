@@ -43,6 +43,27 @@ test('editing a purchase persists a percepcion row and its contribution to the c
     expect($purchase->perceptions->first()->perception_type_id)->toBe($perceptionType->id);
 });
 
+test('selecting a perception type with a default porcentaje autofills the monto', function () {
+    $product = Product::factory()->create(['costo_ultimo' => 100]);
+    $perceptionType = PerceptionType::factory()->create(['activo' => true, 'porcentaje' => 10.5]);
+    $purchase = Purchase::factory()->create(['status' => 'borrador', 'descuento' => 0]);
+    PurchaseLine::factory()->for($purchase)->create([
+        'product_id' => $product->id,
+        'cantidad' => 1,
+        'costo_unit' => 100,
+        'subtotal' => 100,
+    ]);
+
+    Livewire::test(EditPurchase::class, ['record' => $purchase->getRouteKey()])
+        ->fillForm([
+            'perceptions' => [
+                'row1' => ['perception_type_id' => null, 'monto' => 0],
+            ],
+        ])
+        ->set('data.perceptions.row1.perception_type_id', $perceptionType->id)
+        ->assertSet('data.perceptions.row1.monto', '10,50');
+});
+
 test('loading an existing percepcion displays its raw decimal in the money mask format, not corrupted', function () {
     $product = Product::factory()->create(['costo_ultimo' => 100]);
     $perceptionType = PerceptionType::factory()->create(['activo' => true]);

@@ -19,6 +19,7 @@ class PurchaseLine extends Model
         'product_id',
         'cantidad',
         'costo_unit',
+        'costo_final',
         'subtotal',
     ];
 
@@ -27,6 +28,7 @@ class PurchaseLine extends Model
         return [
             'cantidad' => 'decimal:3',
             'costo_unit' => 'decimal:4',
+            'costo_final' => 'decimal:4',
             'subtotal' => 'decimal:2',
         ];
     }

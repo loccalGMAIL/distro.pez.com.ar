@@ -18,6 +18,15 @@ class PerceptionTypesTable
                 TextColumn::make('nombre')
                     ->searchable()
                     ->sortable(),
+                TextColumn::make('porcentaje')
+                    ->label('%')
+                    ->suffix('%')
+                    ->placeholder('—')
+                    ->sortable(),
+                IconColumn::make('afecta_costo')
+                    ->label('Afecta costo')
+                    ->boolean()
+                    ->sortable(),
                 IconColumn::make('activo')
                     ->boolean(),
                 TextColumn::make('created_at')

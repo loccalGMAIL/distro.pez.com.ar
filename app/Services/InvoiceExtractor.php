@@ -12,7 +12,7 @@ use RuntimeException;
  * @phpstan-type CatalogItem array{id: int, nombre: string, barcode: string|null, categoria: string|null}
  * @phpstan-type PerceptionCatalogItem array{id: int, nombre: string}
  * @phpstan-type InvoiceLine array{descripcion: string, description_key: string, cantidad: float, unidad: string, precio_unitario: float, subtotal: float, matched_product_id: int|null, consistente: bool}
- * @phpstan-type InvoicePerception array{descripcion: string, description_key: string, monto: float, matched_perception_type_id: int|null}
+ * @phpstan-type InvoicePerception array{descripcion: string, description_key: string, monto: float, porcentaje: float|null, matched_perception_type_id: int|null}
  * @phpstan-type InvoiceExtraction array{proveedor: mixed, cuit: mixed, tipo_comprobante: mixed, punto_venta: mixed, numero: string|null, fecha: string|null, vencimiento: string|null, subtotal: float|null, total: float|null, lineas: array<int, InvoiceLine>, percepciones: array<int, InvoicePerception>}
  */
 class InvoiceExtractor
@@ -213,6 +213,10 @@ class InvoiceExtractor
               "Percepción RG 2408". NO confundas una percepción con el descuento. Si la
               factura no tiene ningún monto adicional (ni siquiera IVA discriminado),
               devolvé "percepciones": [].
+            - porcentaje de cada percepción: si el comprobante imprime el porcentaje junto
+              al concepto (ej. "IVA 10,5%" -> "10,5", "Perc. IIBB 4,00%" -> "4,00"),
+              transcribilo tal cual. Si no hay porcentaje impreso, devolvé null. No lo
+              calcules vos dividiendo monto/base — solo transcribí lo impreso.
             - matched_perception_type_id: igual que matched_product_id, pero contra el
               catálogo de tipos de percepción. Si no hay match claro, null.
 
@@ -241,6 +245,7 @@ class InvoiceExtractor
                 {
                   "descripcion": string,
                   "monto": string,
+                  "porcentaje": string|null,
                   "matched_perception_type_id": number|null
                 }
               ]
@@ -278,9 +283,18 @@ class InvoiceExtractor
             ->map(function (array $line) use ($catalogIds): array {
                 $descripcion = (string) ($line['descripcion'] ?? '');
                 $cantidad = $this->parseDecimal($line['cantidad'] ?? null) ?? 0.0;
-                $precioUnitario = $this->parseDecimal($line['precio_unitario'] ?? null) ?? 0.0;
-                $subtotal = $this->parseDecimal($line['subtotal'] ?? null);
+                $precioUnitarioFromAi = $this->parseDecimal($line['precio_unitario'] ?? null);
+                $subtotalFromAi = $this->parseDecimal($line['subtotal'] ?? null);
                 $matchedId = $line['matched_product_id'] ?? null;
+
+                // Si la IA no leyó (o el comprobante no imprime, caso común en
+                // remitos que solo muestran cantidad + subtotal por línea) el
+                // precio unitario, se deriva dividiendo el subtotal por la
+                // cantidad — no es que la IA "haga la cuenta", es aritmética
+                // determinística acá en PHP sobre dos valores que sí
+                // transcribió. Sin esto el costo unitario quedaba en $0.
+                $precioUnitario = $precioUnitarioFromAi
+                    ?? ($subtotalFromAi !== null && $cantidad > 0 ? round($subtotalFromAi / $cantidad, 4) : 0.0);
 
                 return [
                     'descripcion' => $descripcion,
@@ -288,9 +302,9 @@ class InvoiceExtractor
                     'cantidad' => $cantidad,
                     'unidad' => $this->normalizeUnit($line['unidad'] ?? null),
                     'precio_unitario' => $precioUnitario,
-                    'subtotal' => $subtotal ?? round($cantidad * $precioUnitario, 2),
+                    'subtotal' => $subtotalFromAi ?? round($cantidad * $precioUnitario, 2),
                     'matched_product_id' => in_array($matchedId, $catalogIds, true) ? (int) $matchedId : null,
-                    'consistente' => $subtotal === null || abs($subtotal - ($cantidad * $precioUnitario)) <= max(self::CONSISTENCY_TOLERANCE, $subtotal * 0.02),
+                    'consistente' => $subtotalFromAi === null || abs($subtotalFromAi - ($cantidad * $precioUnitario)) <= max(self::CONSISTENCY_TOLERANCE, $subtotalFromAi * 0.02),
                 ];
             })
             ->values()
@@ -305,6 +319,7 @@ class InvoiceExtractor
                     'descripcion' => $descripcion,
                     'description_key' => SupplierProductLink::normalizeDescription($descripcion),
                     'monto' => $this->parseDecimal($percepcion['monto'] ?? null) ?? 0.0,
+                    'porcentaje' => $this->parseDecimal($percepcion['porcentaje'] ?? null),
                     'matched_perception_type_id' => in_array($matchedId, $perceptionCatalogIds, true) ? (int) $matchedId : null,
                 ];
             })

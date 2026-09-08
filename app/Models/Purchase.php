@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Services\PurchaseCostAllocator;
 use Database\Factories\PurchaseFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -114,9 +115,11 @@ class Purchase extends Model
 
     /**
      * Ingresa stock por cada línea (un stock_movement tipo "compra" por
-     * línea) y actualiza el costo vigente del producto con el costo_unit
-     * pagado. Idempotente: si ya se generaron movimientos para esta compra,
-     * no vuelve a ingresar stock.
+     * línea) y actualiza el costo vigente del producto con el costo final
+     * (costo de factura + impuestos que afectan costo, prorrateados por
+     * PurchaseCostAllocator — no el costo_unit "en bruto" de la línea).
+     * Idempotente: si ya se generaron movimientos para esta compra, no
+     * vuelve a ingresar stock.
      */
     public function aumentarStock(): void
     {
@@ -125,18 +128,23 @@ class Purchase extends Model
         }
 
         DB::transaction(function () {
-            foreach ($this->lines as $line) {
+            app(PurchaseCostAllocator::class)->aplicar($this);
+
+            foreach ($this->lines()->get() as $line) {
                 $this->stockMovements()->create([
                     'product_id' => $line->product_id,
                     'warehouse_id' => $this->warehouse_id,
                     'quantity' => $line->cantidad,
-                    'unit_cost' => $line->costo_unit,
+                    'unit_cost' => $line->costo_final,
                     'type' => 'compra',
                     'user_id' => $this->user_id,
                     'motivo' => "Compra {$this->numero}",
                 ]);
 
-                $line->product->update(['costo_ultimo' => $line->costo_unit]);
+                $line->product->update([
+                    'costo_ultimo' => $line->costo_final,
+                    'costo_neto_ultimo' => $line->costo_unit,
+                ]);
             }
         });
     }

@@ -20,6 +20,8 @@ class PerceptionTypeFactory extends Factory
         return [
             'nombre' => fake()->unique()->words(3, true),
             'activo' => true,
+            'afecta_costo' => true,
+            'porcentaje' => null,
         ];
     }
 }

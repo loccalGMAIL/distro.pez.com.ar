@@ -54,8 +54,15 @@ class ProductForm
                     ->required()
                     ->default('unidad'),
                 TextInput::make('costo_ultimo')
-                    ->label('Costo')
+                    ->label('Costo final')
+                    ->helperText('Incluye los impuestos de la última compra que afectan costo, ya prorrateados. Es el costo sobre el que se calculan las listas de precios.')
                     ->required()
+                    ->numeric()
+                    ->prefix('$')
+                    ->default(0.0),
+                TextInput::make('costo_neto_ultimo')
+                    ->label('Costo de factura')
+                    ->helperText('Último costo neto de compra, sin impuestos. Solo informativo.')
                     ->numeric()
                     ->prefix('$')
                     ->default(0.0),

@@ -143,6 +143,40 @@ test('extract flags a line as inconsistent when quantity times price does not ma
     expect($result['lineas'][0]['consistente'])->toBeFalse();
 });
 
+test('extract derives precio_unitario from subtotal/cantidad when the AI omits it', function () {
+    fakeClaudeResponse([
+        'proveedor' => null, 'cuit' => null, 'tipo_comprobante' => null,
+        'punto_venta' => null, 'numero' => null, 'fecha' => null, 'vencimiento' => null,
+        'subtotal' => null, 'total' => null,
+        'lineas' => [
+            // Remito típico: solo cantidad y subtotal por línea, sin columna de precio unitario.
+            ['descripcion' => 'A', 'cantidad' => '4', 'unidad' => 'u', 'subtotal' => '200', 'matched_product_id' => null],
+        ],
+    ]);
+
+    $result = app(InvoiceExtractor::class)->extract($this->fakeImagePath, 'image/jpeg');
+
+    expect($result['lineas'][0]['precio_unitario'])->toBe(50.0);
+    expect($result['lineas'][0]['subtotal'])->toBe(200.0);
+    expect($result['lineas'][0]['consistente'])->toBeTrue();
+});
+
+test('extract leaves precio_unitario at 0 when neither it nor the subtotal are present', function () {
+    fakeClaudeResponse([
+        'proveedor' => null, 'cuit' => null, 'tipo_comprobante' => null,
+        'punto_venta' => null, 'numero' => null, 'fecha' => null, 'vencimiento' => null,
+        'subtotal' => null, 'total' => null,
+        'lineas' => [
+            ['descripcion' => 'A', 'cantidad' => '4', 'unidad' => 'u', 'matched_product_id' => null],
+        ],
+    ]);
+
+    $result = app(InvoiceExtractor::class)->extract($this->fakeImagePath, 'image/jpeg');
+
+    expect($result['lineas'][0]['precio_unitario'])->toBe(0.0);
+    expect($result['lineas'][0]['subtotal'])->toBe(0.0);
+});
+
 test('extract returns null fecha instead of guessing an implausible format', function () {
     fakeClaudeResponse([
         'proveedor' => null, 'cuit' => null, 'tipo_comprobante' => null,
@@ -183,6 +217,33 @@ test('extract normalizes percepciones and validates matched_perception_type_id a
     expect($result['percepciones'][0]['description_key'])->toBe('percepcion iibb buenos aires');
     expect($result['percepciones'][0]['descripcion'])->toBe('Percepcion IIBB Buenos Aires');
     expect($result['percepciones'][1]['matched_perception_type_id'])->toBeNull();
+});
+
+test('extract normalizes the printed porcentaje of a percepcion and defaults it to null when absent', function () {
+    fakeClaudeResponse([
+        'proveedor' => null, 'cuit' => null, 'tipo_comprobante' => null,
+        'punto_venta' => null, 'numero' => null, 'fecha' => null, 'vencimiento' => null,
+        'subtotal' => null, 'total' => null, 'lineas' => [],
+        'percepciones' => [
+            [
+                'descripcion' => 'IVA 10,5%',
+                'monto' => '1.050,00',
+                'porcentaje' => '10,5',
+                'matched_perception_type_id' => null,
+            ],
+            [
+                // Respuesta vieja / factura sin porcentaje impreso: la clave puede faltar.
+                'descripcion' => 'Perc. IIBB Bs As',
+                'monto' => '400,00',
+                'matched_perception_type_id' => null,
+            ],
+        ],
+    ]);
+
+    $result = app(InvoiceExtractor::class)->extract($this->fakeImagePath, 'image/jpeg');
+
+    expect($result['percepciones'][0]['porcentaje'])->toBe(10.5);
+    expect($result['percepciones'][1]['porcentaje'])->toBeNull();
 });
 
 test('extract defaults percepciones to an empty array when the AI response omits the key', function () {

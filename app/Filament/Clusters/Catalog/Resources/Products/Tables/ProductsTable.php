@@ -54,10 +54,15 @@ class ProductsTable
                     ->badge()
                     ->toggleable(),
                 TextColumn::make('costo_ultimo')
-                    ->label('Costo')
+                    ->label('Costo final')
                     ->money('ARS', locale: 'es_AR')
                     ->sortable()
                     ->toggleable(),
+                TextColumn::make('costo_neto_ultimo')
+                    ->label('Costo factura')
+                    ->money('ARS', locale: 'es_AR')
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('stock_total')
                     ->label('Stock')
                     ->state(fn (Product $record): float => (float) $record->stock_total)
