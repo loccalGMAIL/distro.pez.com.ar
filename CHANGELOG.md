@@ -23,6 +23,11 @@ y este proyecto sigue [Semantic Versioning](https://semver.org/lang/es/) (ver
   (`Producto → Costo final`) queda con el número real; el costo de factura
   sin impuestos se conserva aparte (`Producto → Costo factura`) como
   referencia.
+- Al escanear una factura o remito que solo imprime cantidad y subtotal por
+  línea (sin una columna de precio unitario explícita), la IA no tenía qué
+  transcribir ahí y el costo de esa línea quedaba en $0. Ahora, cuando falta
+  el precio unitario pero sí se conoce el subtotal y la cantidad, se deriva
+  dividiendo uno por el otro.
 
 ### Added
 
@@ -39,6 +44,10 @@ y este proyecto sigue [Semantic Versioning](https://semver.org/lang/es/) (ver
 - Comando `php artisan app:recalculate-product-costs` (con `--dry-run` para
   previsualizar sin escribir nada) para recalcular el costo final de
   productos con compras confirmadas anteriores a este cambio.
+- La columna "Detectado por la IA" (texto crudo que leyó la IA) del escaneo
+  de facturas está oculta por defecto en las grillas de líneas y
+  percepciones, y se despliega con un botón "»" cuando hace falta verificar
+  una línea dudosa.
 
 ## [0.8.1] - 2026-09-02
 
