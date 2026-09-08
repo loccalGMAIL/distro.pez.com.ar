@@ -12,7 +12,7 @@ use RuntimeException;
  * @phpstan-type CatalogItem array{id: int, nombre: string, barcode: string|null, categoria: string|null}
  * @phpstan-type PerceptionCatalogItem array{id: int, nombre: string}
  * @phpstan-type InvoiceLine array{descripcion: string, description_key: string, cantidad: float, unidad: string, precio_unitario: float, subtotal: float, matched_product_id: int|null, consistente: bool}
- * @phpstan-type InvoicePerception array{descripcion: string, description_key: string, monto: float, matched_perception_type_id: int|null}
+ * @phpstan-type InvoicePerception array{descripcion: string, description_key: string, monto: float, porcentaje: float|null, matched_perception_type_id: int|null}
  * @phpstan-type InvoiceExtraction array{proveedor: mixed, cuit: mixed, tipo_comprobante: mixed, punto_venta: mixed, numero: string|null, fecha: string|null, vencimiento: string|null, subtotal: float|null, total: float|null, lineas: array<int, InvoiceLine>, percepciones: array<int, InvoicePerception>}
  */
 class InvoiceExtractor
@@ -213,6 +213,10 @@ class InvoiceExtractor
               "Percepción RG 2408". NO confundas una percepción con el descuento. Si la
               factura no tiene ningún monto adicional (ni siquiera IVA discriminado),
               devolvé "percepciones": [].
+            - porcentaje de cada percepción: si el comprobante imprime el porcentaje junto
+              al concepto (ej. "IVA 10,5%" -> "10,5", "Perc. IIBB 4,00%" -> "4,00"),
+              transcribilo tal cual. Si no hay porcentaje impreso, devolvé null. No lo
+              calcules vos dividiendo monto/base — solo transcribí lo impreso.
             - matched_perception_type_id: igual que matched_product_id, pero contra el
               catálogo de tipos de percepción. Si no hay match claro, null.
 
@@ -241,6 +245,7 @@ class InvoiceExtractor
                 {
                   "descripcion": string,
                   "monto": string,
+                  "porcentaje": string|null,
                   "matched_perception_type_id": number|null
                 }
               ]
@@ -305,6 +310,7 @@ class InvoiceExtractor
                     'descripcion' => $descripcion,
                     'description_key' => SupplierProductLink::normalizeDescription($descripcion),
                     'monto' => $this->parseDecimal($percepcion['monto'] ?? null) ?? 0.0,
+                    'porcentaje' => $this->parseDecimal($percepcion['porcentaje'] ?? null),
                     'matched_perception_type_id' => in_array($matchedId, $perceptionCatalogIds, true) ? (int) $matchedId : null,
                 ];
             })

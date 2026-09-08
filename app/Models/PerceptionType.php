@@ -17,12 +17,16 @@ class PerceptionType extends Model
     protected $fillable = [
         'nombre',
         'activo',
+        'afecta_costo',
+        'porcentaje',
     ];
 
     protected function casts(): array
     {
         return [
             'activo' => 'boolean',
+            'afecta_costo' => 'boolean',
+            'porcentaje' => 'decimal:3',
         ];
     }
 

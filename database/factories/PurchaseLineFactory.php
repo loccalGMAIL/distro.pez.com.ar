@@ -22,6 +22,7 @@ class PurchaseLineFactory extends Factory
             'product_id' => Product::factory(),
             'cantidad' => $cantidad,
             'costo_unit' => $costoUnit,
+            'costo_final' => $costoUnit,
             'subtotal' => $cantidad * $costoUnit,
         ];
     }

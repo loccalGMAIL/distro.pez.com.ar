@@ -15,3 +15,4 @@ Before planning or editing, find the row whose globs match the file's path and r
 | app/Filament/Clusters/Settings/Resources/**,app/Policies/**,config/filament-shield.php,config/permission.php,app/Models/*.php | .ai/rules/policies-models.md |
 | app/Filament/Clusters/Purchases/**, app/Models/{Purchase,PurchaseLine,Supplier,SupplierProductLink}.php, app/Services/{InvoiceExtractor,InvoiceImagePreparer,SupplierMatcher,ProductLinkMemory}.php | .ai/rules/purchases.md |
 | app/Filament/Clusters/Sales/** | .ai/rules/sales.md |
+| app/Services/PurchaseCostAllocator.php,app/Models/{Purchase,PurchaseLine,PerceptionType,PurchasePerception}.php | .ai/rules/services-models.md |

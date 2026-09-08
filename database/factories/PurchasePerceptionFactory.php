@@ -23,6 +23,7 @@ class PurchasePerceptionFactory extends Factory
             'purchase_id' => Purchase::factory(),
             'perception_type_id' => PerceptionType::factory(),
             'descripcion' => fake()->words(3, true),
+            'porcentaje' => null,
             'monto' => fake()->randomFloat(2, 10, 5000),
         ];
     }

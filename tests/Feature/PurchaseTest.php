@@ -2,6 +2,7 @@
 
 use App\Models\Payment;
 use App\Models\PaymentAllocation;
+use App\Models\PerceptionType;
 use App\Models\Product;
 use App\Models\Purchase;
 use App\Models\PurchaseLine;
@@ -17,6 +18,8 @@ test('aumentarStock creates one positive compra movement per line, updates costo
         'product_id' => $product->id,
         'cantidad' => 4,
         'costo_unit' => 250,
+        'costo_final' => 250,
+        'subtotal' => 1000,
     ]);
 
     $purchase->aumentarStock();
@@ -30,6 +33,45 @@ test('aumentarStock creates one positive compra movement per line, updates costo
     expect($movements->first()->type)->toBe('compra');
     expect($movements->first()->warehouse_id)->toBe($warehouse->id);
     expect((float) $product->fresh()->costo_ultimo)->toBe(250.0);
+    expect((float) $product->fresh()->costo_neto_ultimo)->toBe(250.0);
+});
+
+test('aumentarStock prorratea al costo final solo las percepciones que afectan costo', function () {
+    $warehouse = Warehouse::factory()->create();
+    $harina = Product::factory()->create(['costo_ultimo' => 0]);
+    $azucar = Product::factory()->create(['costo_ultimo' => 0]);
+    $purchase = Purchase::factory()->create(['warehouse_id' => $warehouse->id, 'status' => 'borrador', 'descuento' => 0]);
+
+    // Harina: neto $600 (60% del subtotal). Azúcar: neto $400 (40%).
+    PurchaseLine::factory()->for($purchase)->create([
+        'product_id' => $harina->id,
+        'cantidad' => 1,
+        'costo_unit' => 600,
+        'costo_final' => 0,
+        'subtotal' => 600,
+    ]);
+    PurchaseLine::factory()->for($purchase)->create([
+        'product_id' => $azucar->id,
+        'cantidad' => 1,
+        'costo_unit' => 400,
+        'costo_final' => 0,
+        'subtotal' => 400,
+    ]);
+
+    $tipoQueAfecta = PerceptionType::factory()->create(['afecta_costo' => true]);
+    $tipoQueNoAfecta = PerceptionType::factory()->create(['afecta_costo' => false]);
+
+    // Impuestos que afectan costo: $40 (repartidos 60/40 => $24 y $16).
+    // Percepción que NO afecta costo: no debe mover el costo final.
+    $purchase->perceptions()->create(['perception_type_id' => $tipoQueAfecta->id, 'monto' => 40]);
+    $purchase->perceptions()->create(['perception_type_id' => $tipoQueNoAfecta->id, 'monto' => 999]);
+
+    $purchase->aumentarStock();
+
+    expect((float) $harina->fresh()->costo_ultimo)->toBe(624.0);
+    expect((float) $harina->fresh()->costo_neto_ultimo)->toBe(600.0);
+    expect((float) $azucar->fresh()->costo_ultimo)->toBe(416.0);
+    expect((float) $azucar->fresh()->costo_neto_ultimo)->toBe(400.0);
 });
 
 test('confirmar sets status to confirmada and increases stock', function () {
@@ -104,6 +146,8 @@ test('anular on a confirmed purchase reverses stock and sets status to anulada w
         'product_id' => $product->id,
         'cantidad' => 5,
         'costo_unit' => 200,
+        'costo_final' => 200,
+        'subtotal' => 1000,
     ]);
     $purchase->aumentarStock();
 

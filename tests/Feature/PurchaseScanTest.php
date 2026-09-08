@@ -189,6 +189,7 @@ test('confirming after a scan with a percepcion creates a PurchasePerception and
             [
                 'descripcion' => 'Perc. IIBB Bs As',
                 'monto' => '150',
+                'porcentaje' => '15',
                 'matched_perception_type_id' => $perceptionType->id,
             ],
         ],
@@ -205,6 +206,7 @@ test('confirming after a scan with a percepcion creates a PurchasePerception and
     expect($purchase->perceptions)->toHaveCount(1);
     expect((float) $purchase->perceptions->first()->monto)->toBe(150.0);
     expect($purchase->perceptions->first()->perception_type_id)->toBe($perceptionType->id);
+    expect((float) $purchase->perceptions->first()->porcentaje)->toBe(15.0);
     expect((float) $purchase->percepciones)->toBe(150.0);
     expect((float) $purchase->total)->toBe(1000.0 - 0.0 + 150.0);
 

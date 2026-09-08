@@ -20,6 +20,7 @@ class ProductFactory extends Factory
             'product_category_id' => ProductCategory::factory(),
             'base_unit' => 'unidad',
             'costo_ultimo' => fake()->randomFloat(4, 50, 5000),
+            'costo_neto_ultimo' => fake()->randomFloat(4, 50, 5000),
             'min_stock' => fake()->randomFloat(3, 0, 50),
             'tracks_lot' => false,
             'activo' => true,

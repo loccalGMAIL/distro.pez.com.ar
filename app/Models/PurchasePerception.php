@@ -18,12 +18,14 @@ class PurchasePerception extends Model
         'purchase_id',
         'perception_type_id',
         'descripcion',
+        'porcentaje',
         'monto',
     ];
 
     protected function casts(): array
     {
         return [
+            'porcentaje' => 'decimal:3',
             'monto' => 'decimal:2',
         ];
     }

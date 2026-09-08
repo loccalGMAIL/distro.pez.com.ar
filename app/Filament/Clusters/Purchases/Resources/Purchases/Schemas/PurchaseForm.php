@@ -17,6 +17,7 @@ use Filament\Forms\Components\Repeater\TableColumn;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Notifications\Notification;
 use Filament\Schemas\Components\Component;
@@ -211,6 +212,7 @@ class PurchaseForm
                 TableColumn::make('Cantidad')->width('90px'),
                 TableColumn::make('Costo unit.')->width('120px')->alignment(Alignment::End),
                 TableColumn::make('Subtotal')->width('120px')->alignment(Alignment::End),
+                TableColumn::make('Costo final')->width('120px')->alignment(Alignment::End),
             ])
             ->compact()
             ->schema([
@@ -278,6 +280,13 @@ class PurchaseForm
                     ->numeric(decimalPlaces: 2, decimalSeparator: ',', thousandsSeparator: '.')
                     ->prefix('$')
                     ->extraAttributes(['style' => 'display: block; text-align: right; font-size: 0.75rem;']),
+                TextEntry::make('costo_final_display')
+                    ->hiddenLabel()
+                    ->state(fn (Get $get) => self::previewCostoFinal($get))
+                    ->numeric(decimalPlaces: 2, decimalSeparator: ',', thousandsSeparator: '.')
+                    ->prefix('$')
+                    ->tooltip('Costo unitario con los impuestos que afectan costo ya prorrateados')
+                    ->extraAttributes(['style' => 'display: block; text-align: right; font-size: 0.75rem;']),
             ])
             ->addActionLabel('Agregar producto')
             ->required()
@@ -301,6 +310,7 @@ class PurchaseForm
             ->afterStateUpdated(fn (Get $get, Set $set) => self::recalculateSummaryFromRoot($get, $set))
             ->table([
                 TableColumn::make('Tipo'),
+                TableColumn::make('%')->width('90px')->alignment(Alignment::End),
                 TableColumn::make('Monto')->width('120px')->alignment(Alignment::End),
             ])
             ->compact()
@@ -312,14 +322,38 @@ class PurchaseForm
                     ->searchable()
                     ->preload()
                     ->required()
+                    ->live()
+                    ->afterStateUpdated(function (Get $get, Set $set, ?string $state) {
+                        $perceptionType = $state ? PerceptionType::find($state) : null;
+
+                        if (! $perceptionType?->porcentaje) {
+                            return;
+                        }
+
+                        $set('porcentaje', (string) $perceptionType->porcentaje);
+                        self::recalculatePercepcionFromPorcentaje($get, $set);
+                    })
+                    ->helperText(fn (Get $get): ?string => filled($get('perception_type_id'))
+                        && ! (bool) PerceptionType::query()->whereKey($get('perception_type_id'))->first()?->afecta_costo
+                        ? 'No suma al costo'
+                        : null)
                     ->createOptionForm([
                         TextInput::make('nombre')->required(),
+                        TextInput::make('porcentaje')->numeric()->suffix('%'),
+                        Toggle::make('afecta_costo')->label('Afecta el costo del producto')->default(true),
                     ])
                     ->createOptionUsing(fn (array $data): int => PerceptionType::create([
                         ...$data,
                         'activo' => true,
                     ])->getKey())
                     ->extraAttributes(['style' => 'min-width: 12rem;']),
+                TextInput::make('porcentaje')
+                    ->hiddenLabel()
+                    ->numeric()
+                    ->live()
+                    ->suffix('%')
+                    ->extraInputAttributes(['style' => 'text-align: right; font-size: 0.75rem;'])
+                    ->afterStateUpdated(fn (Get $get, Set $set) => self::recalculatePercepcionFromPorcentaje($get, $set)),
                 TextInput::make('monto')
                     ->hiddenLabel()
                     ->required()
@@ -337,6 +371,31 @@ class PurchaseForm
             ])
             ->addActionLabel('Agregar percepción')
             ->columnSpanFull();
+    }
+
+    /**
+     * Autocompleta `monto` a partir de `porcentaje` (el de esta fila, tipeado
+     * o traído del catálogo) aplicado sobre subtotal − descuento de la
+     * compra. El monto sigue siendo tipeable a mano: esto solo corre cuando
+     * cambia el tipo de percepción o el % de esta fila, nunca al revés.
+     */
+    private static function recalculatePercepcionFromPorcentaje(Get $get, Set $set): void
+    {
+        $porcentaje = $get('porcentaje');
+
+        if (blank($porcentaje)) {
+            return;
+        }
+
+        $base = (float) ($get('../../subtotal') ?? 0) - self::parseAmount($get('../../descuento'));
+        $monto = round($base * ((float) $porcentaje / 100), 2);
+
+        $set('monto', self::formatAmountForMask(number_format($monto, 2, '.', '')));
+
+        self::recalculateSummaryFromRoot(
+            fn (string $key) => $get("../../{$key}"),
+            fn (string $key, $value) => $set("../../{$key}", $value),
+        );
     }
 
     /**
@@ -457,6 +516,43 @@ class PurchaseForm
         $set('percepciones', number_format($percepciones, 2, '.', ''));
 
         self::recalculateTotal($get, $set);
+    }
+
+    /**
+     * Previsualiza el costo unitario final de una línea (costo de factura +
+     * impuestos que afectan costo, prorrateados por neto) mientras se carga
+     * la compra, sin tocar la base. Misma fórmula que
+     * `PurchaseCostAllocator::distribuir()` salvo el ajuste de centavos por
+     * redondeo, que esa clase asigna a la línea de mayor subtotal — acá no
+     * hace falta reproducirlo, es solo una vista previa; el valor que se
+     * persiste de verdad se recalcula con el servicio real al confirmar la
+     * compra (`Purchase::aumentarStock()`).
+     */
+    private static function previewCostoFinal(Get $get): float
+    {
+        $subtotal = (float) ($get('subtotal') ?? 0);
+        $cantidad = (float) ($get('cantidad') ?? 0);
+
+        if ($cantidad <= 0.0) {
+            return 0.0;
+        }
+
+        $netoTotal = collect(self::lineRows($get('../../lines')))
+            ->sum(fn (array $line): float => (float) ($line['subtotal'] ?? 0));
+
+        if ($netoTotal <= 0.0) {
+            return round($subtotal / $cantidad, 4);
+        }
+
+        $impuestosQueAfectanCosto = collect(self::lineRows($get('../../perceptions')))
+            ->filter(fn (array $perception): bool => filled($perception['perception_type_id'] ?? null)
+                && (bool) PerceptionType::query()->whereKey($perception['perception_type_id'])->first()?->afecta_costo)
+            ->sum(fn (array $perception): float => self::parseAmount($perception['monto'] ?? 0));
+
+        $descuento = self::parseAmount($get('../../descuento'));
+        $ajusteLinea = round(($impuestosQueAfectanCosto - $descuento) * ($subtotal / $netoTotal), 2);
+
+        return round(($subtotal + $ajusteLinea) / $cantidad, 4);
     }
 
     /**

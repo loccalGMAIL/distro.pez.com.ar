@@ -14,26 +14,33 @@ test('an admin can create a perception type', function () {
     Livewire::test(CreatePerceptionType::class)
         ->fillForm([
             'nombre' => 'Percepción IIBB Buenos Aires',
+            'porcentaje' => 4,
+            'afecta_costo' => true,
             'activo' => true,
         ])
         ->call('create')
         ->assertHasNoFormErrors();
 
-    expect(PerceptionType::where('nombre', 'Percepción IIBB Buenos Aires')->exists())->toBeTrue();
+    $perceptionType = PerceptionType::where('nombre', 'Percepción IIBB Buenos Aires')->first();
+
+    expect($perceptionType)->not->toBeNull();
+    expect((float) $perceptionType->porcentaje)->toBe(4.0);
+    expect($perceptionType->afecta_costo)->toBeTrue();
 });
 
 test('an admin can edit and delete a perception type', function () {
     $admin = User::factory()->admin()->create(['activo' => true]);
-    $perceptionType = PerceptionType::factory()->create(['activo' => true]);
+    $perceptionType = PerceptionType::factory()->create(['activo' => true, 'afecta_costo' => true]);
 
     $this->actingAs($admin);
 
     Livewire::test(EditPerceptionType::class, ['record' => $perceptionType->getRouteKey()])
-        ->fillForm(['activo' => false])
+        ->fillForm(['activo' => false, 'afecta_costo' => false])
         ->call('save')
         ->assertHasNoFormErrors();
 
     expect($perceptionType->fresh()->activo)->toBeFalse();
+    expect($perceptionType->fresh()->afecta_costo)->toBeFalse();
 
     $perceptionType->delete();
 

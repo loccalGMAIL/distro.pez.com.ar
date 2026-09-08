@@ -8,6 +8,38 @@ y este proyecto sigue [Semantic Versioning](https://semver.org/lang/es/) (ver
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-09-08
+
+### Fixed
+
+- El costo de un producto se tomaba literalmente del precio de la línea de
+  la factura, sin los impuestos que el proveedor factura aparte (IVA,
+  percepción de IIBB, percepción de IVA, etc.). Eso dejaba todos los costos
+  —y las listas de precios calculadas sobre ellos— por debajo del costo
+  real: una harina comprada a $10 con 10,5% de IVA más 4% de IIBB más 1,5%
+  de percepción de IVA en realidad cuesta $11,60, pero quedaba costeada a
+  $10. Ahora, al confirmar una compra, esos impuestos se prorratean entre
+  las líneas según su peso en el neto de la factura y el costo final
+  (`Producto → Costo final`) queda con el número real; el costo de factura
+  sin impuestos se conserva aparte (`Producto → Costo factura`) como
+  referencia.
+
+### Added
+
+- Cada tipo de percepción (Configuración → Tipos de percepción) tiene un
+  switch "Afecta el costo del producto" —prendido por defecto— para decidir
+  qué impuestos suman al costo y cuáles no (por ejemplo, un IVA que se
+  recupera como crédito fiscal). También puede cargar un porcentaje por
+  defecto, que autocompleta el monto al elegir el tipo en una compra (tanto
+  a mano como en el escaneo de facturas con IA, que ahora también lee el
+  porcentaje impreso en el comprobante).
+- Al cargar las líneas de una compra aparece una columna "Costo final" que
+  muestra, mientras se edita, cuánto va a terminar costando cada producto
+  con los impuestos ya prorrateados.
+- Comando `php artisan app:recalculate-product-costs` (con `--dry-run` para
+  previsualizar sin escribir nada) para recalcular el costo final de
+  productos con compras confirmadas anteriores a este cambio.
+
 ## [0.8.1] - 2026-09-02
 
 ### Fixed

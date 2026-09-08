@@ -185,6 +185,33 @@ test('extract normalizes percepciones and validates matched_perception_type_id a
     expect($result['percepciones'][1]['matched_perception_type_id'])->toBeNull();
 });
 
+test('extract normalizes the printed porcentaje of a percepcion and defaults it to null when absent', function () {
+    fakeClaudeResponse([
+        'proveedor' => null, 'cuit' => null, 'tipo_comprobante' => null,
+        'punto_venta' => null, 'numero' => null, 'fecha' => null, 'vencimiento' => null,
+        'subtotal' => null, 'total' => null, 'lineas' => [],
+        'percepciones' => [
+            [
+                'descripcion' => 'IVA 10,5%',
+                'monto' => '1.050,00',
+                'porcentaje' => '10,5',
+                'matched_perception_type_id' => null,
+            ],
+            [
+                // Respuesta vieja / factura sin porcentaje impreso: la clave puede faltar.
+                'descripcion' => 'Perc. IIBB Bs As',
+                'monto' => '400,00',
+                'matched_perception_type_id' => null,
+            ],
+        ],
+    ]);
+
+    $result = app(InvoiceExtractor::class)->extract($this->fakeImagePath, 'image/jpeg');
+
+    expect($result['percepciones'][0]['porcentaje'])->toBe(10.5);
+    expect($result['percepciones'][1]['porcentaje'])->toBeNull();
+});
+
 test('extract defaults percepciones to an empty array when the AI response omits the key', function () {
     fakeClaudeResponse([
         'proveedor' => null, 'cuit' => null, 'tipo_comprobante' => null,
