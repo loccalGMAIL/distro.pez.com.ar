@@ -11,6 +11,7 @@ Before planning or editing, find the row whose globs match the file's path and r
 | app/Models/{Payment,PaymentAllocation}.php,app/Services/PaymentAllocator.php,app/Filament/Clusters/Finance/** | .ai/rules/finance.md |
 | app/Models/{Product,PriceList,Sale,Customer}.php, app/Models/{Purchase,PurchaseLine,Supplier,SupplierProductLink}.php | .ai/rules/models.md |
 | database/seeders/ShieldSeeder.php,app/Filament/**/Pages/** | .ai/rules/pages.md |
+| app/Http/Controllers/PwaController.php,resources/views/pwa/**,resources/views/filament/pwa/**,public/icons/**,resources/css/filament/dashboard/theme.css | .ai/rules/pwa.md |
 | app/Models/{PerceptionType,PurchasePerception,SupplierPerceptionLink}.php,app/Services/PerceptionLinkMemory.php,app/Filament/Clusters/Purchases/**,app/Filament/Clusters/Settings/Resources/PerceptionTypes/** | .ai/rules/perception-types.md |
 | app/Filament/Clusters/Settings/Resources/**,app/Policies/**,config/filament-shield.php,config/permission.php,app/Models/*.php | .ai/rules/policies-models.md |
 | app/Filament/Clusters/Purchases/**, app/Models/{Purchase,PurchaseLine,Supplier,SupplierProductLink}.php, app/Services/{InvoiceExtractor,InvoiceImagePreparer,SupplierMatcher,ProductLinkMemory}.php | .ai/rules/purchases.md |

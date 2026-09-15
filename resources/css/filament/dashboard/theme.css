@@ -10,3 +10,25 @@
 .fi-topbar-close-sidebar-btn {
     @apply -order-1;
 }
+
+/* Instalada en el celular no hay barra del navegador amortiguando los bordes:
+   el topbar queda contra el notch y el contenido contra la barra de gestos.
+   `env(safe-area-inset-*)` solo devuelve algo distinto de 0 gracias al
+   `viewport-fit=cover` que agrega `resources/views/filament/pwa/head.blade.php`;
+   en cualquier otro contexto estas reglas suman 0 y no cambian nada. */
+@media (display-mode: standalone) {
+    .fi-topbar {
+        padding-top: env(safe-area-inset-top);
+        padding-inline-start: calc(var(--spacing) * 4 + env(safe-area-inset-left));
+        padding-inline-end: calc(var(--spacing) * 4 + env(safe-area-inset-right));
+    }
+
+    .fi-main {
+        padding-bottom: calc(var(--spacing) * 6 + env(safe-area-inset-bottom));
+    }
+
+    .fi-sidebar {
+        padding-top: env(safe-area-inset-top);
+        padding-bottom: env(safe-area-inset-bottom);
+    }
+}

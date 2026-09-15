@@ -24,6 +24,20 @@ class CompanySetting extends Model
         'logo_path',
     ];
 
+    /**
+     * Nombre con el que se identifica la app hacia afuera (manifest de la PWA,
+     * título de la pantalla de inicio del celular). Cae en `APP_NAME` mientras
+     * no se haya cargado la razón social.
+     */
+    public static function appName(): string
+    {
+        $razonSocial = static::query()->value('razon_social');
+
+        return filled($razonSocial)
+            ? (string) $razonSocial
+            : (string) config('app.name');
+    }
+
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()->logAll()->logOnlyDirty()->dontSubmitEmptyLogs();

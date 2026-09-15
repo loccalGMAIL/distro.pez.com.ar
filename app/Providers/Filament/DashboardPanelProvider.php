@@ -40,6 +40,14 @@ class DashboardPanelProvider extends PanelProvider
                 fn (): View => view('filament.auth.google-login-button'),
             )
             ->renderHook(
+                PanelsRenderHook::HEAD_END,
+                fn (): View => view('filament.pwa.head'),
+            )
+            ->renderHook(
+                PanelsRenderHook::SCRIPTS_AFTER,
+                fn (): View => view('filament.pwa.scripts'),
+            )
+            ->renderHook(
                 PanelsRenderHook::TOPBAR_START,
                 fn (): View => view('filament.topbar.mobile-dashboard-button'),
             )

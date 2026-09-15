@@ -15,7 +15,7 @@
         type="button"
         x-on:click="window.dispatchEvent(new CustomEvent('resumen-toggle'))"
         x-show="! open"
-        class="fixed bottom-4 right-4 z-30 inline-flex items-center gap-2 rounded-full bg-primary-600 px-4 py-3 text-sm font-semibold text-white shadow-lg"
+        class="fixed bottom-[calc(1rem+env(safe-area-inset-bottom))] right-4 z-30 inline-flex items-center gap-2 rounded-full bg-primary-600 px-4 py-3 text-sm font-semibold text-white shadow-lg"
     >
         <x-filament::icon
             icon="heroicon-o-receipt-percent"
