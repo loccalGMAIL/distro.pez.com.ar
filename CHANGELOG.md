@@ -8,6 +8,47 @@ y este proyecto sigue [Semantic Versioning](https://semver.org/lang/es/) (ver
 
 ## [Unreleased]
 
+## [0.10.0] - 2026-09-15
+
+### Added
+
+- La app se puede instalar en el celular como una aplicación más: queda con su
+  ícono en la pantalla de inicio, abre a pantalla completa sin la barra del
+  navegador y arranca directo en el dashboard. Desde Android aparece un aviso
+  para instalarla; en iPhone, como Safari no ofrece el atajo solo, el aviso
+  explica el gesto (Compartir → "Agregar a inicio"). El nombre que queda bajo el
+  ícono es la razón social cargada en Configuración.
+- Mantener apretado el ícono de la app abre accesos directos a Nueva venta,
+  Escanear factura y Productos, sin pasar por el menú.
+- Los archivos pesados que no cambian entre visitas (estilos, tipografías,
+  íconos) quedan guardados en el dispositivo, así que la app abre bastante más
+  rápido a partir de la segunda vez.
+- Si se corta la conexión, en vez de la pantalla de error del navegador aparece
+  una pantalla propia con un botón para reintentar. Ojo: **no se puede trabajar
+  sin conexión**; cargar una venta o una compra sigue necesitando internet.
+- Cuando se deploya una versión nueva, la app avisa con una barra abajo y un
+  botón "Actualizar". Hace falta porque, instalada, el usuario no recarga la
+  página nunca y se quedaría con la versión vieja indefinidamente.
+- En iPhone el contenido ya no queda tapado por el notch ni por la barra de
+  gestos de abajo, y el botón flotante de "Resumen" de una venta subió lo
+  necesario para no quedar encima de esa barra.
+- El menú de usuario (el del avatar) suma "Instalar app": si alguien cerró el
+  aviso de instalación, esta es la forma de volver a verlo cuando quiera. En
+  iPhone abre las mismas instrucciones de "Compartir → Agregar a inicio".
+- Al abrir la app instalada en iPhone ya no aparece una pantalla en blanco
+  mientras carga: se ve una pantalla de bienvenida con el ícono, como en
+  Android.
+- El aviso de instalación en Android ahora muestra una vista previa del
+  Dashboard y de la pantalla de venta antes de instalar.
+- El aviso de instalar/actualizar ya no aparece en la pantalla de login: es lo
+  primero que ve cualquiera, y todavía no sabe si va a volver a usar la app.
+  Sigue disponible después, desde el menú de usuario.
+
+### Fixed
+
+- La primera vez que alguien abría la app, la página se recargaba sola sin
+  motivo (efecto secundario de instalar el service worker). No pasa más.
+
 ## [0.9.0] - 2026-09-08
 
 ### Fixed

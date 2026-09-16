@@ -10,3 +10,4 @@ Read the relevant entries before making changes that touch versioning, release p
 | 0002 | Track the app version in `config/app.php` via SemVer | [0002-version-app.md](0002-version-app.md) |
 | 0003 | Escaneo de código de barras por cámara sin dependencias JS nuevas | [0003-escaneo-barcode-camara.md](0003-escaneo-barcode-camara.md) |
 | 0004 | Traducción manual de `validation.php` al español (sin paquete nuevo) | [0004-traduccion-validation-es.md](0004-traduccion-validation-es.md) |
+| 0005 | PWA a mano sobre el panel de Filament, sin offline de datos | [0005-pwa.md](0005-pwa.md) |
