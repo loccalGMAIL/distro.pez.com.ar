@@ -6,6 +6,7 @@
 --}}
 @php
     $appName = \App\Models\CompanySetting::appName();
+    $splashScreens = \App\Http\Controllers\PwaController::splashScreens();
 @endphp
 
 <link rel="manifest" href="{{ route('pwa.manifest') }}">
@@ -25,7 +26,22 @@
 --}}
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="{{ \Illuminate\Support\Str::limit($appName, 12, '') }}">
-<link rel="apple-touch-icon" href="{{ asset('apple-touch-icon.png') }}">
+<link rel="apple-touch-icon" sizes="180x180" href="{{ asset('apple-touch-icon.png') }}">
+
+{{--
+    Sin esto, abrir la app instalada en iPhone muestra una pantalla en blanco
+    hasta que carga el panel: iOS no usa `background_color` del manifest para
+    el splash, necesita un PNG del tamaño exacto del dispositivo. Solo
+    portrait: en landscape ningún `media` matchea y queda el comportamiento de
+    siempre, ni mejor ni peor.
+--}}
+@foreach ($splashScreens as $screen)
+    <link
+        rel="apple-touch-startup-image"
+        href="{{ route('pwa.splash', ['width' => $screen['width'], 'height' => $screen['height']]) }}"
+        media="(device-width: {{ $screen['cssWidth'] }}px) and (device-height: {{ $screen['cssHeight'] }}px) and (-webkit-device-pixel-ratio: {{ $screen['dpr'] }}) and (orientation: portrait)"
+    >
+@endforeach
 
 <script>
     /**

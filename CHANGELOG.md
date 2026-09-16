@@ -19,7 +19,7 @@ y este proyecto sigue [Semantic Versioning](https://semver.org/lang/es/) (ver
   explica el gesto (Compartir → "Agregar a inicio"). El nombre que queda bajo el
   ícono es la razón social cargada en Configuración.
 - Mantener apretado el ícono de la app abre accesos directos a Nueva venta,
-  Escanear factura y Fichaje, sin pasar por el menú.
+  Escanear factura y Productos, sin pasar por el menú.
 - Los archivos pesados que no cambian entre visitas (estilos, tipografías,
   íconos) quedan guardados en el dispositivo, así que la app abre bastante más
   rápido a partir de la segunda vez.
@@ -32,6 +32,22 @@ y este proyecto sigue [Semantic Versioning](https://semver.org/lang/es/) (ver
 - En iPhone el contenido ya no queda tapado por el notch ni por la barra de
   gestos de abajo, y el botón flotante de "Resumen" de una venta subió lo
   necesario para no quedar encima de esa barra.
+- El menú de usuario (el del avatar) suma "Instalar app": si alguien cerró el
+  aviso de instalación, esta es la forma de volver a verlo cuando quiera. En
+  iPhone abre las mismas instrucciones de "Compartir → Agregar a inicio".
+- Al abrir la app instalada en iPhone ya no aparece una pantalla en blanco
+  mientras carga: se ve una pantalla de bienvenida con el ícono, como en
+  Android.
+- El aviso de instalación en Android ahora muestra una vista previa del
+  Dashboard y de la pantalla de venta antes de instalar.
+- El aviso de instalar/actualizar ya no aparece en la pantalla de login: es lo
+  primero que ve cualquiera, y todavía no sabe si va a volver a usar la app.
+  Sigue disponible después, desde el menú de usuario.
+
+### Fixed
+
+- La primera vez que alguien abría la app, la página se recargaba sola sin
+  motivo (efecto secundario de instalar el service worker). No pasa más.
 
 ## [0.9.0] - 2026-09-08
 

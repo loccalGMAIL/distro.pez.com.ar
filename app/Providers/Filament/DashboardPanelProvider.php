@@ -48,6 +48,10 @@ class DashboardPanelProvider extends PanelProvider
                 fn (): View => view('filament.pwa.scripts'),
             )
             ->renderHook(
+                PanelsRenderHook::USER_MENU_PROFILE_AFTER,
+                fn (): View => view('filament.pwa.user-menu-item'),
+            )
+            ->renderHook(
                 PanelsRenderHook::TOPBAR_START,
                 fn (): View => view('filament.topbar.mobile-dashboard-button'),
             )

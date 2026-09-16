@@ -81,6 +81,12 @@ Route::withoutMiddleware([
     Route::get('/sw.js', [PwaController::class, 'serviceWorker'])->name('pwa.service-worker');
 
     Route::get('/offline', [PwaController::class, 'offline'])->name('pwa.offline');
+
+    // Bajo /icons/ a propósito: el service worker ya cachea ese prefijo con
+    // CACHEABLE_PREFIXES, sin tocar nada.
+    Route::get('/icons/splash/{width}x{height}.png', [PwaController::class, 'splash'])
+        ->name('pwa.splash')
+        ->where(['width' => '[0-9]+', 'height' => '[0-9]+']);
 });
 
 Route::get('/auth/google/redirect', [GoogleAuthController::class, 'redirect'])

@@ -27,7 +27,12 @@ const CACHEABLE_PATHS = ['/favicon.ico', '/favicon.svg', '/apple-touch-icon.png'
 
 self.addEventListener('install', (event) => {
     event.waitUntil(
-        caches.open(CACHE_NAME).then((cache) => cache.add(OFFLINE_URL)),
+        caches.open(CACHE_NAME)
+            .then((cache) => cache.add(OFFLINE_URL))
+            // Si la red falla justo en este momento, no cachear la pantalla
+            // offline no puede tirar abajo la instalación entera: se pierde
+            // con ella el cache-first de assets, que no depende de esto.
+            .catch(() => {}),
     );
 });
 
