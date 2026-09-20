@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Database\Factories\ProductFactory;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -93,6 +94,55 @@ class Product extends Model
         }
 
         return $priceList->precioPara($this);
+    }
+
+    /**
+     * Productos activos "favoritos" para el grid de venta: los más vendidos por
+     * unidades (SUM(cantidad)) en ventas confirmadas, histórico. Mantiene la misma
+     * métrica que ProductoMasVendidoWidget (unidades + status 'confirmada'), pero
+     * sin acotar al mes para que la sección no quede vacía a principio de mes.
+     * Solo devuelve productos que efectivamente tengan alguna venta confirmada.
+     *
+     * @return Collection<int, Product>
+     */
+    public static function favoritosParaVenta(int $limite = 4): Collection
+    {
+        return self::query()
+            ->where('activo', true)
+            ->whereHas('saleLines.sale', function ($query): void {
+                $query->where('status', 'confirmada');
+            })
+            ->withSum(['saleLines as cantidad_vendida' => function ($query): void {
+                $query->whereHas('sale', function ($saleQuery): void {
+                    $saleQuery->where('status', 'confirmada');
+                });
+            }], 'cantidad')
+            ->orderByDesc('cantidad_vendida')
+            ->orderBy('nombre')
+            ->limit($limite)
+            ->get();
+    }
+
+    /**
+     * Productos activos para el grid de venta, separados en favoritos (los más
+     * vendidos) y el resto en orden alfabético (excluyendo los favoritos).
+     *
+     * @return array{favorites: Collection<int, Product>, others: Collection<int, Product>}
+     */
+    public static function paraGridDeVenta(int $favoritosLimite = 4): array
+    {
+        $favorites = self::favoritosParaVenta($favoritosLimite);
+
+        $others = self::query()
+            ->where('activo', true)
+            ->whereKeyNot($favorites->modelKeys())
+            ->orderBy('nombre')
+            ->get();
+
+        return [
+            'favorites' => $favorites,
+            'others' => $others,
+        ];
     }
 
     /**

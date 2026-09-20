@@ -118,7 +118,7 @@ class SaleForm
 
             View::make('filament.sale-form.product-cards')
                 ->viewData([
-                    'products' => Product::where('activo', true)->orderBy('nombre')->get(),
+                    ...Product::paraGridDeVenta(),
                     'priceListId' => PriceList::where('predeterminada', true)->value('id'),
                 ])
                 ->columnSpanFull(),
