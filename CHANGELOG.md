@@ -8,6 +8,19 @@ y este proyecto sigue [Semantic Versioning](https://semver.org/lang/es/) (ver
 
 ## [Unreleased]
 
+## [0.11.0] - 2026-09-20
+
+### Changed
+
+- En Nueva venta, el grid de productos ahora arranca con una sección
+  **"Favoritos"** que muestra los 4 productos más vendidos (por cantidad, sobre
+  ventas confirmadas), y debajo, en **"Todos los productos"**, el resto en orden
+  alfabético. Así los productos que más se cargan quedan a mano sin buscarlos.
+  Los favoritos se calculan solos a partir del histórico de ventas: no hay que
+  marcarlos a mano, y si todavía no hay ventas confirmadas no aparece la sección
+  y el grid queda alfabético como antes. En celular se sigue mostrando un botón
+  "Ver más" para desplegar el listado completo.
+
 ## [0.10.0] - 2026-09-15
 
 ### Added

@@ -4,6 +4,8 @@ use App\Filament\Clusters\Sales\Resources\Sales\Pages\CreateSale;
 use App\Models\Customer;
 use App\Models\PriceList;
 use App\Models\Product;
+use App\Models\Sale;
+use App\Models\SaleLine;
 use App\Models\User;
 use App\Models\Warehouse;
 use Livewire\Livewire;
@@ -88,4 +90,32 @@ test('the "ver más" button is not rendered when there are six products or fewer
 
     expect($html)->not->toContain('hidden sm:contents');
     expect($html)->not->toContain('Ver más');
+});
+
+test('favorite products appear in a "Favoritos" section, the rest under "Todos los productos"', function () {
+    $favorito = Product::factory()->create(['nombre' => 'Producto Estrella']);
+    Product::factory()->create(['nombre' => 'Producto Comun']);
+
+    $sale = Sale::factory()->create(['status' => 'confirmada']);
+    SaleLine::factory()->create(['sale_id' => $sale->id, 'product_id' => $favorito->id, 'cantidad' => 8]);
+
+    $html = Livewire::test(CreateSale::class)->html();
+
+    expect($html)->toContain('Favoritos');
+    expect($html)->toContain('Todos los productos');
+
+    // El favorito se muestra dentro de la sección de favoritos: entre el
+    // encabezado "Favoritos" y el encabezado "Todos los productos".
+    expect(strpos($html, 'Producto Estrella'))->toBeGreaterThan(strpos($html, 'Favoritos'));
+    expect(strpos($html, 'Producto Estrella'))->toBeLessThan(strpos($html, 'Todos los productos'));
+    expect(strpos($html, 'Producto Comun'))->toBeGreaterThan(strpos($html, 'Todos los productos'));
+});
+
+test('the "Favoritos" section is not rendered when there are no confirmed sales', function () {
+    Product::factory()->count(3)->create();
+
+    $html = Livewire::test(CreateSale::class)->html();
+
+    expect($html)->not->toContain('Favoritos');
+    expect($html)->not->toContain('Todos los productos');
 });
