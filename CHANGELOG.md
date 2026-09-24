@@ -8,6 +8,28 @@ y este proyecto sigue [Semantic Versioning](https://semver.org/lang/es/) (ver
 
 ## [Unreleased]
 
+## [0.11.1] - 2026-09-24
+
+### Changed
+
+- Al dar de alta un cliente, el **código se asigna solo** (`CLI-000001`,
+  `CLI-000002`, …), tanto desde Clientes como desde el botón "+" de Nueva
+  venta. En el formulario el código queda de solo lectura; ya no hace falta el
+  botón "Generar". Los clientes existentes sin código no se modifican.
+
+### Added
+
+- En el listado de Clientes se puede **eliminar** un cliente desde su fila, y
+  **restaurarlo** después (filtro "Eliminados"). Es un borrado lógico: el
+  cliente deja de aparecer para ventas nuevas, pero sus ventas y comprobantes
+  anteriores lo siguen mostrando.
+
+### Removed
+
+- Se quitó el **borrado definitivo** de clientes (desde la edición y desde las
+  acciones masivas), para no perder clientes que tienen ventas o pagos
+  asociados.
+
 ## [0.11.0] - 2026-09-20
 
 ### Changed
