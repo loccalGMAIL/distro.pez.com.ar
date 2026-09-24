@@ -2,18 +2,13 @@
 
 namespace App\Filament\Clusters\Partners\Resources\Customers\Schemas;
 
-use App\Models\Customer;
 use App\Models\PriceList;
-use Filament\Actions\Action;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Components\Component;
-use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
-use Filament\Support\Icons\Heroicon;
-use Illuminate\Support\Str;
 
 class CustomerForm
 {
@@ -30,12 +25,10 @@ class CustomerForm
     {
         return [
             TextInput::make('codigo')
-                ->suffixAction(
-                    Action::make('generateCodigo')
-                        ->label('Generar')
-                        ->icon(Heroicon::Sparkles)
-                        ->action(fn (Set $set) => $set('codigo', self::generateCodigo())),
-                ),
+                ->label('Código')
+                ->disabled()
+                ->dehydrated(false)
+                ->placeholder('Se asigna automáticamente al guardar'),
             TextInput::make('razon_social')
                 ->required(),
             TextInput::make('cuit'),
@@ -78,9 +71,9 @@ class CustomerForm
      * modal de creación de venta): solo lo que la tabla exige sin default
      * (`razon_social`, `price_list_id` — ver migración
      * `2026_08_18_000300_make_price_list_id_required_on_customers`). El
-     * resto (código, contacto, condición de pago, saldo, etc.) tiene
-     * default en la tabla y se completa después desde el apartado
-     * Clientes.
+     * código lo asigna `Customer` al crear; el resto (contacto, condición
+     * de pago, saldo, etc.) tiene default en la tabla y se completa
+     * después desde el apartado Clientes.
      *
      * @return array<int, Component>
      */
@@ -98,20 +91,5 @@ class CustomerForm
                 ->default(fn () => PriceList::where('predeterminada', true)->value('id'))
                 ->required(),
         ];
-    }
-
-    /**
-     * Código correlativo: CLI-000001, CLI-000002, ... a partir del mayor
-     * número ya usado (incluye clientes con soft delete, por el unique).
-     */
-    private static function generateCodigo(): string
-    {
-        $next = 1 + (Customer::withTrashed()
-            ->where('codigo', 'like', 'CLI-%')
-            ->pluck('codigo')
-            ->map(fn (string $codigo): int => (int) Str::after($codigo, 'CLI-'))
-            ->max() ?? 0);
-
-        return 'CLI-'.str_pad((string) $next, 6, '0', STR_PAD_LEFT);
     }
 }

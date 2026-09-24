@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Str;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
 
@@ -49,11 +50,32 @@ class Customer extends Model
 
     protected static function booted(): void
     {
+        static::creating(function (Customer $customer) {
+            if (blank($customer->codigo)) {
+                $customer->codigo = static::nextCodigo();
+            }
+        });
+
         static::saved(function (Customer $customer) {
             if ($customer->predeterminado) {
                 static::where('id', '!=', $customer->id)->update(['predeterminado' => false]);
             }
         });
+    }
+
+    /**
+     * Código correlativo: CLI-000001, CLI-000002, ... a partir del mayor
+     * número ya usado (incluye clientes con soft delete, por el unique).
+     */
+    public static function nextCodigo(): string
+    {
+        $next = 1 + (static::withTrashed()
+            ->where('codigo', 'like', 'CLI-%')
+            ->pluck('codigo')
+            ->map(fn (string $codigo): int => (int) Str::after($codigo, 'CLI-'))
+            ->max() ?? 0);
+
+        return 'CLI-'.str_pad((string) $next, 6, '0', STR_PAD_LEFT);
     }
 
     /**
