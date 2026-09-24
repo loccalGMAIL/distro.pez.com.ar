@@ -1,11 +1,14 @@
 <?php
 
 use App\Filament\Clusters\Partners\Resources\Customers\Pages\CreateCustomer;
+use App\Filament\Clusters\Partners\Resources\Customers\Pages\EditCustomer;
 use App\Filament\Clusters\Partners\Resources\Customers\Pages\ListCustomers;
 use App\Models\Customer;
 use App\Models\PriceList;
 use App\Models\User;
 use Filament\Actions\DeleteAction;
+use Filament\Actions\ForceDeleteAction;
+use Filament\Actions\ForceDeleteBulkAction;
 use Filament\Actions\RestoreAction;
 use Filament\Actions\Testing\TestAction;
 use Livewire\Livewire;
@@ -65,4 +68,15 @@ test('a soft deleted customer can be restored from the list', function () {
         ->callAction(TestAction::make(RestoreAction::class)->table($customer));
 
     expect($customer->fresh()->trashed())->toBeFalse();
+});
+
+test('customers cannot be force deleted from the panel', function () {
+    $customer = Customer::factory()->create();
+    $customer->delete();
+
+    Livewire::test(EditCustomer::class, ['record' => $customer->getRouteKey()])
+        ->assertActionDoesNotExist(ForceDeleteAction::class);
+
+    Livewire::test(ListCustomers::class)
+        ->assertActionDoesNotExist(TestAction::make(ForceDeleteBulkAction::class)->table()->bulk());
 });

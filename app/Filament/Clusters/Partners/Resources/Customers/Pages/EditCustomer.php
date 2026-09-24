@@ -4,7 +4,6 @@ namespace App\Filament\Clusters\Partners\Resources\Customers\Pages;
 
 use App\Filament\Clusters\Partners\Resources\Customers\CustomerResource;
 use Filament\Actions\DeleteAction;
-use Filament\Actions\ForceDeleteAction;
 use Filament\Actions\RestoreAction;
 use Filament\Resources\Pages\EditRecord;
 
@@ -16,7 +15,6 @@ class EditCustomer extends EditRecord
     {
         return [
             DeleteAction::make(),
-            ForceDeleteAction::make(),
             RestoreAction::make(),
         ];
     }
