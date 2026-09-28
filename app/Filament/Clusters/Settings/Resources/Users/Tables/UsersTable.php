@@ -2,10 +2,11 @@
 
 namespace App\Filament\Clusters\Settings\Resources\Users\Tables;
 
+use App\Filament\Tables\Columns\ActivoColumn;
+use App\Models\User;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
-use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 
@@ -24,9 +25,8 @@ class UsersTable
                 TextColumn::make('roles.name')
                     ->label('Roles')
                     ->badge(),
-                IconColumn::make('activo')
-                    ->label('Activo')
-                    ->boolean(),
+                ActivoColumn::make()
+                    ->disableToggleWhen(fn (User $record): bool => $record->is(auth()->user())),
                 TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()

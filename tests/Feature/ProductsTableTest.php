@@ -91,3 +91,12 @@ test('the ajustarStock action creates a stock movement of type ajuste for the pr
         'motivo' => 'Conteo físico',
     ]);
 });
+
+test('the activo icon column toggles the product active status', function () {
+    $product = Product::factory()->create(['activo' => true]);
+
+    Livewire::test(ListProducts::class)
+        ->callTableAction('toggleActivo', $product);
+
+    expect($product->fresh()->activo)->toBeFalse();
+});

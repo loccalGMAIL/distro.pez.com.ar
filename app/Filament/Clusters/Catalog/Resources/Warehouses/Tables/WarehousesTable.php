@@ -2,6 +2,7 @@
 
 namespace App\Filament\Clusters\Catalog\Resources\Warehouses\Tables;
 
+use App\Filament\Tables\Columns\ActivoColumn;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
@@ -22,8 +23,7 @@ class WarehousesTable
                 IconColumn::make('predeterminado')
                     ->label('Predeterminado')
                     ->boolean(),
-                IconColumn::make('activo')
-                    ->boolean(),
+                ActivoColumn::make(),
                 TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()

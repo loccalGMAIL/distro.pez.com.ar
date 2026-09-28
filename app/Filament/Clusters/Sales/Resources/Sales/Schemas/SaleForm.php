@@ -26,6 +26,7 @@ use Filament\Schemas\Components\View;
 use Filament\Schemas\Schema;
 use Filament\Support\Enums\Alignment;
 use Filament\Support\RawJs;
+use Illuminate\Database\Eloquent\Builder;
 
 class SaleForm
 {
@@ -68,11 +69,15 @@ class SaleForm
             //     ->placeholder('Automático'),
             Select::make('customer_id')
                 ->label('Cliente')
-                ->relationship('customer', 'razon_social')
+                ->relationship(
+                    name: 'customer',
+                    titleAttribute: 'razon_social',
+                    modifyQueryUsing: fn (Builder $query) => self::activeCustomersQuery($query),
+                )
                 ->searchable()
                 ->preload()
                 ->required()
-                ->default(fn () => Customer::where('predeterminado', true)->value('id'))
+                ->default(fn () => Customer::where('predeterminado', true)->where('activo', true)->value('id'))
                 ->live()
                 ->afterStateUpdated(function (Set $set, ?string $state) {
                     if ($state) {
@@ -212,6 +217,20 @@ class SaleForm
             Hidden::make('status')
                 ->default('confirmada'),
         ];
+    }
+
+    /**
+     * Clientes disponibles para elegir en una venta nueva: excluye
+     * inactivos y con soft delete (Sale::customer() es ->withTrashed() para
+     * que ventas VIEJAS sigan mostrando el cliente que tenían, pero acá se
+     * trata de qué se puede elegir para una venta nueva).
+     *
+     * @param  Builder<Customer>  $query
+     * @return Builder<Customer>
+     */
+    private static function activeCustomersQuery(Builder $query): Builder
+    {
+        return $query->withoutTrashed()->where('activo', true);
     }
 
     /**

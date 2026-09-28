@@ -2,6 +2,7 @@
 
 namespace App\Filament\Clusters\Partners\Resources\Customers\Tables;
 
+use App\Filament\Tables\Columns\ActivoColumn;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
@@ -52,8 +53,7 @@ class CustomersTable
                     ->label('Predeterminado')
                     ->boolean()
                     ->toggleable(),
-                IconColumn::make('activo')
-                    ->boolean(),
+                ActivoColumn::make(),
                 TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()

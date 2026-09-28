@@ -2,6 +2,7 @@
 
 namespace App\Filament\Clusters\Catalog\Resources\PriceLists\Tables;
 
+use App\Filament\Tables\Columns\ActivoColumn;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
@@ -33,8 +34,7 @@ class PriceListsTable
                 IconColumn::make('compartible')
                     ->label('Compartible')
                     ->boolean(),
-                IconColumn::make('activo')
-                    ->boolean(),
+                ActivoColumn::make(),
                 TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()

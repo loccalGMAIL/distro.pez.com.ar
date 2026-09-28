@@ -2,6 +2,7 @@
 
 namespace App\Filament\Clusters\Catalog\Resources\Products\Tables;
 
+use App\Filament\Tables\Columns\ActivoColumn;
 use App\Models\PriceList;
 use App\Models\Product;
 use App\Models\StockMovement;
@@ -78,8 +79,7 @@ class ProductsTable
                 IconColumn::make('tracks_lot')
                     ->boolean()
                     ->toggleable(),
-                IconColumn::make('activo')
-                    ->boolean()
+                ActivoColumn::make()
                     ->toggleable(),
                 TextColumn::make('created_at')
                     ->dateTime()

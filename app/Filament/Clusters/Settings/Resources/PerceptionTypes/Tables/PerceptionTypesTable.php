@@ -2,6 +2,7 @@
 
 namespace App\Filament\Clusters\Settings\Resources\PerceptionTypes\Tables;
 
+use App\Filament\Tables\Columns\ActivoColumn;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
@@ -27,8 +28,7 @@ class PerceptionTypesTable
                     ->label('Afecta costo')
                     ->boolean()
                     ->sortable(),
-                IconColumn::make('activo')
-                    ->boolean(),
+                ActivoColumn::make(),
                 TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()

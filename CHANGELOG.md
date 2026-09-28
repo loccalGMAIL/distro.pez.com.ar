@@ -8,6 +8,19 @@ y este proyecto sigue [Semantic Versioning](https://semver.org/lang/es/) (ver
 
 ## [Unreleased]
 
+## [0.12.0] - 2026-09-28
+
+### Changed
+
+- En Nueva venta, el selector de **Cliente** ya no muestra clientes
+  **eliminados** ni **inactivos** — evita cargar una venta a un cliente que ya
+  no está operativo.
+- El ícono ✓/✗ de **Activo**, en todos los listados que lo tienen (Clientes,
+  Proveedores, Productos, Listas de precio, Depósitos, Tipos de percepción y
+  Usuarios), ahora es un **botón**: un clic lo activa/desactiva, con
+  confirmación previa, sin tener que entrar a Editar. Un usuario no puede
+  desactivarse a sí mismo desde su propia fila.
+
 ## [0.11.1] - 2026-09-24
 
 ### Changed

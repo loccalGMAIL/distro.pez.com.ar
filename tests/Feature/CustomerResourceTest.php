@@ -70,6 +70,20 @@ test('a soft deleted customer can be restored from the list', function () {
     expect($customer->fresh()->trashed())->toBeFalse();
 });
 
+test('the activo icon column toggles the customer active status with confirmation', function () {
+    $customer = Customer::factory()->create(['activo' => true]);
+
+    Livewire::test(ListCustomers::class)
+        ->callAction(TestAction::make('toggleActivo')->table($customer));
+
+    expect($customer->fresh()->activo)->toBeFalse();
+
+    Livewire::test(ListCustomers::class)
+        ->callAction(TestAction::make('toggleActivo')->table($customer));
+
+    expect($customer->fresh()->activo)->toBeTrue();
+});
+
 test('customers cannot be force deleted from the panel', function () {
     $customer = Customer::factory()->create();
     $customer->delete();

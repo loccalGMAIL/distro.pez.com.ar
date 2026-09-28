@@ -37,3 +37,19 @@ test('creating a customer from the sale form selects it as the sale customer', f
 
     expect(Customer::where('razon_social', 'Cliente Nuevo SA')->count())->toBe(1);
 });
+
+test('inactive and soft deleted customers are not selectable options in the sale form', function () {
+    $inactivo = Customer::factory()->create(['activo' => false]);
+    $eliminado = Customer::factory()->create();
+    $eliminado->delete();
+
+    Livewire::test(CreateSale::class)
+        ->fillForm(['customer_id' => $inactivo->id])
+        ->call('create')
+        ->assertHasFormErrors(['customer_id']);
+
+    Livewire::test(CreateSale::class)
+        ->fillForm(['customer_id' => $eliminado->id])
+        ->call('create')
+        ->assertHasFormErrors(['customer_id']);
+});
