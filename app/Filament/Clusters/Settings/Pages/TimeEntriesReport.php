@@ -2,6 +2,8 @@
 
 namespace App\Filament\Clusters\Settings\Pages;
 
+use BackedEnum;
+use Filament\Support\Icons\Heroicon;
 use App\Filament\Clusters\Settings\SettingsCluster;
 use App\Models\TimeEntry;
 use App\Models\TimeEntrySettlement;
@@ -34,6 +36,8 @@ class TimeEntriesReport extends Page implements HasTable
     protected string $view = 'filament.clusters.settings.pages.time-entries-report';
 
     protected static ?string $cluster = SettingsCluster::class;
+
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedClipboardDocumentList;
 
     protected static ?string $navigationLabel = 'Reporte de fichajes';
 

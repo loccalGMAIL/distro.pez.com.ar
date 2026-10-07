@@ -2,6 +2,8 @@
 
 namespace App\Filament\Clusters\Settings\Pages;
 
+use BackedEnum;
+use Filament\Support\Icons\Heroicon;
 use App\Filament\Clusters\Settings\SettingsCluster;
 use App\Models\CompanySetting;
 use Filament\Actions\Action;
@@ -22,6 +24,8 @@ class General extends Page
     protected string $view = 'filament.clusters.settings.pages.general';
 
     protected static ?string $cluster = SettingsCluster::class;
+
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedCog8Tooth;
 
     protected static ?string $navigationLabel = 'General';
 

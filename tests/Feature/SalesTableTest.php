@@ -23,3 +23,12 @@ test('the sales table can be filtered by customer', function () {
         ->assertCanSeeTableRecords([$saleA])
         ->assertCanNotSeeTableRecords([$saleB]);
 });
+
+test('the sales table lists the most recent dates first', function () {
+    $older = Sale::factory()->create(['fecha' => now()->subDays(10)]);
+    $newest = Sale::factory()->create(['fecha' => now()]);
+    $middle = Sale::factory()->create(['fecha' => now()->subDays(3)]);
+
+    Livewire::test(ListSales::class)
+        ->assertCanSeeTableRecords([$newest, $middle, $older], inOrder: true);
+});
