@@ -99,6 +99,7 @@ class SalesTable
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
+            ->defaultSort('fecha', 'desc')
             ->filters([
                 SelectFilter::make('status')
                     ->options(['borrador' => 'Borrador', 'confirmada' => 'Confirmada', 'anulada' => 'Anulada']),

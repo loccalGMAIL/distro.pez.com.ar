@@ -8,6 +8,19 @@ y este proyecto sigue [Semantic Versioning](https://semver.org/lang/es/) (ver
 
 ## [Unreleased]
 
+## [0.12.1] - 2026-10-07
+
+### Changed
+
+- El listado de **Ventas** ahora arranca ordenado por fecha, con las más
+  recientes primero (Compras ya lo hacía). Sigue siendo posible reordenar
+  desde los encabezados.
+
+### Added
+
+- Las páginas **General** y **Reporte de fichajes** de Configuración ahora
+  tienen ícono en el menú, como el resto de las opciones.
+
 ## [0.12.0] - 2026-09-28
 
 ### Changed
