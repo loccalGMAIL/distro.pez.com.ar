@@ -8,7 +8,7 @@ y este proyecto sigue [Semantic Versioning](https://semver.org/lang/es/) (ver
 
 ## [Unreleased]
 
-## [0.13.0] - 2026-10-07
+## [0.12.1] - 2026-10-07
 
 ### Changed
 
