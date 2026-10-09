@@ -16,6 +16,10 @@ class StockMovementsTable
         return $table
             ->defaultSort('created_at', 'desc')
             ->columns([
+                TextColumn::make('created_at')
+                    ->label('Fecha')
+                    ->date('d/m/Y')
+                    ->sortable(),
                 TextColumn::make('product.nombre')
                     ->label('Producto')
                     ->searchable(),
@@ -34,9 +38,6 @@ class StockMovementsTable
                     ->badge(),
                 TextColumn::make('user.name')
                     ->label('Usuario'),
-                TextColumn::make('created_at')
-                    ->dateTime()
-                    ->sortable(),
             ])
             ->filters([
                 SelectFilter::make('type')
