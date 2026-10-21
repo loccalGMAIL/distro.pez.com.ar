@@ -6,6 +6,7 @@ use App\Listeners\LogAuthenticationActivity;
 use App\Policies\ActivityPolicy;
 use App\Policies\RolePolicy;
 use Carbon\CarbonImmutable;
+use Filament\Tables\Table;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
@@ -31,6 +32,7 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->configureDefaults();
+        $this->configureTables();
 
         Gate::policy(Activity::class, ActivityPolicy::class);
         Gate::policy(Role::class, RolePolicy::class);
@@ -58,5 +60,14 @@ class AppServiceProvider extends ServiceProvider
                 ->uncompromised()
             : null,
         );
+    }
+
+    /**
+     * Show every table as cards (label: value per row) below the `sm` breakpoint,
+     * keeping the regular table layout on wider screens.
+     */
+    protected function configureTables(): void
+    {
+        Table::configureUsing(fn (Table $table): Table => $table->stackedOnMobile());
     }
 }
