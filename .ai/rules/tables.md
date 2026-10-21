@@ -11,3 +11,6 @@ A pedido explícito: toda acción dentro de `->recordActions([...])` —incluida
 
 ## Links a otro listado ya filtrado: `getUrl('index', ['filters' => [...]])`
 `ListRecords` persiste los filtros en la query string como `filters` (`#[Url(as: 'filters')]`), así que para abrir un listado pre-filtrado se pasa `Resource::getUrl('index', ['filters' => ['<filtro>' => ['value' => $id]]])`. Ejemplos: la columna Stock de `ProductsTable` (→ movimientos de stock por `product_id`) y la acción "Ver compras" (→ compras por `product_id`).
+
+## Filtros que agregan columnas (`withSum`, `withCount`, `addSelect`): usar `->baseQuery()`, no `->query()`
+Filament aplica el `->query()` de cada filtro dentro de un `$query->where(function ($query) {...})` anidado (`HasFilters::applyFiltersToTableQuery()`), así que cualquier select que se agregue ahí (`withSum`, `withCount`, `addSelect`) se pierde y la columna queda vacía, aunque el filtrado en sí funcione. El `where`/`whereHas` va en `->query()`; lo que agrega columnas va en `->baseQuery()`, que recibe la consulta principal. Ejemplo: el filtro "Producto" de `PurchasesTable` (`filterByProduct()` + `sumProductUnits()`).

@@ -118,7 +118,8 @@ class PurchasesTable
                         ->orderBy('nombre')
                         ->pluck('nombre', 'id'))
                     ->searchable()
-                    ->query(fn (Builder $query, array $data): Builder => self::filterByProduct($query, $data['value'] ?? null)),
+                    ->query(fn (Builder $query, array $data): Builder => self::filterByProduct($query, $data['value'] ?? null))
+                    ->baseQuery(fn (Builder $query, array $data): Builder => self::sumProductUnits($query, $data['value'] ?? null)),
             ])
             ->recordActions([
                 ViewAction::make()
@@ -163,8 +164,7 @@ class PurchasesTable
     }
 
     /**
-     * Deja solo las compras que incluyen el producto y suma sus unidades
-     * (puede venir en más de una línea) en `product_units` para la columna "Unidades".
+     * Deja solo las compras que incluyen el producto.
      *
      * @param  Builder<Purchase>  $query
      * @return Builder<Purchase>
@@ -175,8 +175,24 @@ class PurchasesTable
             return $query;
         }
 
-        return $query
-            ->whereHas('lines', fn (Builder $lineQuery): Builder => $lineQuery->where('product_id', $productId))
-            ->withSum(['lines as product_units' => fn (Builder $lineQuery): Builder => $lineQuery->where('product_id', $productId)], 'cantidad');
+        return $query->whereHas('lines', fn (Builder $lineQuery): Builder => $lineQuery->where('product_id', $productId));
+    }
+
+    /**
+     * Suma las unidades del producto en cada compra (puede venir en más de una
+     * línea) en `product_units`, para la columna "Unidades". Va en baseQuery()
+     * y no en query(): Filament aplica query() dentro de un where() anidado,
+     * donde el select que agrega withSum() se pierde.
+     *
+     * @param  Builder<Purchase>  $query
+     * @return Builder<Purchase>
+     */
+    private static function sumProductUnits(Builder $query, mixed $productId): Builder
+    {
+        if (blank($productId)) {
+            return $query;
+        }
+
+        return $query->withSum(['lines as product_units' => fn (Builder $lineQuery): Builder => $lineQuery->where('product_id', $productId)], 'cantidad');
     }
 }
