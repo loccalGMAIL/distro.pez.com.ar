@@ -70,4 +70,3 @@ test('filtering by product shows the units of that product in each purchase', fu
         ->assertTableColumnVisible('product_units')
         ->assertTableColumnStateSet('product_units', 7, $purchase);
 });
-

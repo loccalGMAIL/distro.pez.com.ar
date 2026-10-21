@@ -137,4 +137,3 @@ test('the "ver compras" action links to the purchases filtered by the product', 
     Livewire::test(ListProducts::class)
         ->assertTableActionHasUrl('verCompras', $url, $product);
 });
-
