@@ -115,6 +115,7 @@ class ActivityLogsTable
             ])
             ->recordActions([
                 ViewAction::make()
+                    ->iconButton()
                     ->schema([
                         TextEntry::make('causer.name')
                             ->label('Usuario')

@@ -54,7 +54,8 @@ class TimeEntriesTable
                         ->when($data['hasta'] ?? null, fn (Builder $query, string $hasta): Builder => $query->whereDate('started_at', '<=', $hasta))),
             ])
             ->recordActions([
-                EditAction::make(),
+                EditAction::make()
+                    ->iconButton(),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([

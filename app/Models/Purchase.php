@@ -14,6 +14,9 @@ use Illuminate\Support\Facades\DB;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
 
+/**
+ * @property-read float|string|null $product_units Suma de purchase_lines.cantidad de un producto, agregada por el filtro "Producto" de PurchasesTable vía withSum(). No existe fuera de ese contexto.
+ */
 class Purchase extends Model
 {
     /** @use HasFactory<PurchaseFactory> */

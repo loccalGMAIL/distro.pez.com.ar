@@ -37,7 +37,8 @@ class UsersTable
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->recordActions([
-                EditAction::make(),
+                EditAction::make()
+                    ->iconButton(),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([

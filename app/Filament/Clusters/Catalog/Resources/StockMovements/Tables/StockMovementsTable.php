@@ -40,6 +40,11 @@ class StockMovementsTable
                     ->label('Usuario'),
             ])
             ->filters([
+                SelectFilter::make('product_id')
+                    ->label('Producto')
+                    ->relationship('product', 'nombre')
+                    ->searchable()
+                    ->preload(),
                 SelectFilter::make('type')
                     ->label('Tipo')
                     ->options([
@@ -53,7 +58,8 @@ class StockMovementsTable
                     ]),
             ])
             ->recordActions([
-                EditAction::make(),
+                EditAction::make()
+                    ->iconButton(),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([

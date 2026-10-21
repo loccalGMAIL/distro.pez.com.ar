@@ -122,8 +122,10 @@ class AllocationsRelationManager extends RelationManager
                 CreateAction::make(),
             ])
             ->recordActions([
-                EditAction::make(),
-                DeleteAction::make(),
+                EditAction::make()
+                    ->iconButton(),
+                DeleteAction::make()
+                    ->iconButton(),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([

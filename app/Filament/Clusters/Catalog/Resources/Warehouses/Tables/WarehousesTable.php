@@ -37,7 +37,8 @@ class WarehousesTable
                 //
             ])
             ->recordActions([
-                EditAction::make(),
+                EditAction::make()
+                    ->iconButton(),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([

@@ -2,7 +2,9 @@
 
 namespace App\Filament\Clusters\Purchases\Resources\Purchases\Tables;
 
+use App\Models\Product;
 use App\Models\Purchase;
+use App\Models\PurchaseLine;
 use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
@@ -12,10 +14,12 @@ use Filament\Actions\RestoreBulkAction;
 use Filament\Actions\ViewAction;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Contracts\HasTable;
 use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Collection;
 
 class PurchasesTable
 {
@@ -55,6 +59,13 @@ class PurchasesTable
                     ->date('d/m/Y')
                     ->sortable()
                     ->toggleable(),
+                TextColumn::make('product_units')
+                    ->label('Unidades')
+                    ->state(fn (Purchase $record): float => (float) $record->product_units)
+                    ->numeric()
+                    ->sortable()
+                    ->toggleable()
+                    ->visible(fn (HasTable $livewire): bool => filled($livewire->getTableFilterState('product_id')['value'] ?? null)),
                 TextColumn::make('total')
                     ->money('ARS', locale: 'es_AR')
                     ->sortable()
@@ -100,6 +111,14 @@ class PurchasesTable
                     ->relationship('supplier', 'razon_social')
                     ->searchable()
                     ->preload(),
+                SelectFilter::make('product_id')
+                    ->label('Producto')
+                    ->options(fn (): Collection => Product::query()
+                        ->whereIn('id', PurchaseLine::query()->select('product_id'))
+                        ->orderBy('nombre')
+                        ->pluck('nombre', 'id'))
+                    ->searchable()
+                    ->query(fn (Builder $query, array $data): Builder => self::filterByProduct($query, $data['value'] ?? null)),
             ])
             ->recordActions([
                 ViewAction::make()
@@ -141,5 +160,23 @@ class PurchasesTable
                     RestoreBulkAction::make(),
                 ]),
             ]);
+    }
+
+    /**
+     * Deja solo las compras que incluyen el producto y suma sus unidades
+     * (puede venir en más de una línea) en `product_units` para la columna "Unidades".
+     *
+     * @param  Builder<Purchase>  $query
+     * @return Builder<Purchase>
+     */
+    private static function filterByProduct(Builder $query, mixed $productId): Builder
+    {
+        if (blank($productId)) {
+            return $query;
+        }
+
+        return $query
+            ->whereHas('lines', fn (Builder $lineQuery): Builder => $lineQuery->where('product_id', $productId))
+            ->withSum(['lines as product_units' => fn (Builder $lineQuery): Builder => $lineQuery->where('product_id', $productId)], 'cantidad');
     }
 }
