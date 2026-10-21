@@ -2,6 +2,7 @@
 
 namespace App\Filament\Clusters\Catalog\Resources\Products\Tables;
 
+use App\Filament\Clusters\Catalog\Resources\StockMovements\StockMovementResource;
 use App\Filament\Tables\Columns\ActivoColumn;
 use App\Models\PriceList;
 use App\Models\Product;
@@ -70,7 +71,10 @@ class ProductsTable
                     ->numeric()
                     ->sortable()
                     ->color(fn (Product $record): ?string => (float) $record->stock_total <= (float) $record->min_stock ? 'danger' : null)
-                    ->tooltip(fn (Product $record): ?string => self::stockBreakdownTooltip($record)),
+                    ->tooltip(fn (Product $record): ?string => self::stockBreakdownTooltip($record))
+                    ->url(fn (Product $record): string => StockMovementResource::getUrl('index', [
+                        'filters' => ['product_id' => ['value' => $record->getKey()]],
+                    ])),
                 ...self::priceListColumns(),
                 TextColumn::make('min_stock')
                     ->numeric()
