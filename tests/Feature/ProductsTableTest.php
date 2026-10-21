@@ -3,6 +3,7 @@
 use App\Filament\Clusters\Catalog\Resources\Products\Pages\ListProducts;
 use App\Filament\Clusters\Catalog\Resources\StockMovements\Pages\ListStockMovements;
 use App\Filament\Clusters\Catalog\Resources\StockMovements\StockMovementResource;
+use App\Filament\Clusters\Purchases\Resources\Purchases\PurchaseResource;
 use App\Models\PriceList;
 use App\Models\Product;
 use App\Models\StockMovement;
@@ -125,3 +126,15 @@ test('the stock movements list can be filtered by product', function () {
         ->assertCanSeeTableRecords([$movement])
         ->assertCanNotSeeTableRecords([$otherMovement]);
 });
+
+test('the "ver compras" action links to the purchases filtered by the product', function () {
+    $product = Product::factory()->create();
+
+    $url = PurchaseResource::getUrl('index', [
+        'filters' => ['product_id' => ['value' => $product->id]],
+    ]);
+
+    Livewire::test(ListProducts::class)
+        ->assertTableActionHasUrl('verCompras', $url, $product);
+});
+

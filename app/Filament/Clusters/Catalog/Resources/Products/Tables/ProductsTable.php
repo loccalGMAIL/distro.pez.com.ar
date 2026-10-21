@@ -3,6 +3,7 @@
 namespace App\Filament\Clusters\Catalog\Resources\Products\Tables;
 
 use App\Filament\Clusters\Catalog\Resources\StockMovements\StockMovementResource;
+use App\Filament\Clusters\Purchases\Resources\Purchases\PurchaseResource;
 use App\Filament\Tables\Columns\ActivoColumn;
 use App\Models\PriceList;
 use App\Models\Product;
@@ -102,7 +103,16 @@ class ProductsTable
                 TrashedFilter::make(),
             ])
             ->recordActions([
-                EditAction::make(),
+                EditAction::make()
+                    ->iconButton(),
+                Action::make('verCompras')
+                    ->label('Ver compras')
+                    ->iconButton()
+                    ->icon(Heroicon::OutlinedShoppingCart)
+                    ->color('gray')
+                    ->url(fn (Product $record): string => PurchaseResource::getUrl('index', [
+                        'filters' => ['product_id' => ['value' => $record->getKey()]],
+                    ])),
                 Action::make('ajustarStock')
                     ->label('Ajustar stock')
                     ->iconButton()

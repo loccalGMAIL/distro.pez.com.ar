@@ -18,3 +18,4 @@ Before planning or editing, find the row whose globs match the file's path and r
 | app/Http/Controllers/PwaController.php, resources/views/pwa/**, resources/views/filament/pwa/**, public/icons/**, resources/css/filament/dashboard/theme.css | .ai/rules/pwa.md |
 | app/Filament/Clusters/Sales/** | .ai/rules/sales.md |
 | app/Services/PurchaseCostAllocator.php,app/Models/{Purchase,PurchaseLine,PerceptionType,PurchasePerception}.php | .ai/rules/services-models.md |
+| app/Filament/**/Tables/**,app/Filament/**/RelationManagers/** | .ai/rules/tables.md |

@@ -70,6 +70,7 @@ class PaymentsTable
             ])
             ->recordActions([
                 Action::make('imputar')
+                    ->iconButton()
                     ->label('Imputar')
                     ->icon(Heroicon::OutlinedBanknotes)
                     ->visible(fn (Payment $record): bool => (float) $record->sin_imputar > 0)
@@ -78,7 +79,8 @@ class PaymentsTable
 
                         Notification::make()->title('Pago imputado')->success()->send();
                     }),
-                EditAction::make(),
+                EditAction::make()
+                    ->iconButton(),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
