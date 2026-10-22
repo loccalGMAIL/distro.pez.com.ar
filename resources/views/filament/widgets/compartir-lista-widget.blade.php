@@ -1,5 +1,5 @@
 @php
-    $priceLists = \App\Models\PriceList::orderedForSharing();
+    $priceLists = \App\Models\PriceList::orderedForSharing(auth()->user());
 @endphp
 
 <x-filament-widgets::widget>

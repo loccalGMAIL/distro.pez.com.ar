@@ -63,7 +63,13 @@ class PriceListForm
                 Toggle::make('compartible')
                     ->label('Se puede compartir')
                     ->helperText('Si está apagado, la lista no aparece en el botón de compartir ni se puede descargar su PDF.')
+                    ->live()
                     ->default(true),
+                Toggle::make('compartible_vendedores')
+                    ->label('Compartible por vendedores')
+                    ->helperText('Si está apagado, solo quienes tienen permiso para compartir todas las listas pueden compartirla.')
+                    ->visible(fn (Get $get): bool => (bool) $get('compartible'))
+                    ->default(false),
                 Toggle::make('activo')
                     ->required()
                     ->default(true),

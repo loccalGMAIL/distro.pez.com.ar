@@ -116,6 +116,8 @@ class SaleForm
                         ->relationship('user', 'name')
                         ->searchable()
                         ->preload()
+                        ->disabled(fn (): bool => ! auth()->user()?->can('ViewAll:Sale'))
+                        ->dehydrated()
                         ->default(fn () => auth()->id()),
                     Textarea::make('observaciones')
                         ->columnSpanFull(),

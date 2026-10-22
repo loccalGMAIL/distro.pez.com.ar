@@ -19,6 +19,8 @@ use Illuminate\View\Middleware\ShareErrorsFromSession;
 Route::redirect('/', '/dashboard/login')->name('home');
 
 Route::get('/ventas/{sale}/comprobante', function (Sale $sale) {
+    abort_unless(Auth::user()?->can('view', $sale), 403);
+
     $comprobanteNumero = $sale->comprobanteNumero();
 
     abort_unless(filled($comprobanteNumero), 404);
@@ -27,7 +29,7 @@ Route::get('/ventas/{sale}/comprobante', function (Sale $sale) {
 })->middleware('auth')->name('sales.comprobante');
 
 Route::get('/listas-precios/{priceList}/pdf', function (PriceList $priceList) {
-    abort_unless($priceList->compartible, 404);
+    abort_unless($priceList->isSharableBy(Auth::user()), 404);
 
     return $priceList->productsPdf()->stream('lista-precios-'.Str::slug($priceList->nombre).'.pdf');
 })->middleware('auth')->name('price-lists.pdf');

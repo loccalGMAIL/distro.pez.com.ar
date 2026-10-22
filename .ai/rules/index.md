@@ -14,8 +14,9 @@ Before planning or editing, find the row whose globs match the file's path and r
 | database/seeders/ShieldSeeder.php,app/Filament/**/Pages/** | .ai/rules/pages.md |
 | app/Models/{PerceptionType,PurchasePerception,SupplierPerceptionLink}.php,app/Services/PerceptionLinkMemory.php,app/Filament/Clusters/Purchases/**,app/Filament/Clusters/Settings/Resources/PerceptionTypes/** | .ai/rules/perception-types.md |
 | app/Filament/Clusters/Settings/Resources/**,app/Policies/**,config/filament-shield.php,config/permission.php,app/Models/*.php | .ai/rules/policies-models.md |
+| app/Policies/** | .ai/rules/policies.md |
 | app/Filament/Clusters/Purchases/**, app/Models/{Purchase,PurchaseLine,Supplier,SupplierProductLink}.php, app/Services/{InvoiceExtractor,InvoiceImagePreparer,SupplierMatcher,ProductLinkMemory}.php | .ai/rules/purchases.md |
 | app/Http/Controllers/PwaController.php, resources/views/pwa/**, resources/views/filament/pwa/**, public/icons/**, resources/css/filament/dashboard/theme.css | .ai/rules/pwa.md |
 | app/Filament/Clusters/Sales/** | .ai/rules/sales.md |
 | app/Services/PurchaseCostAllocator.php,app/Models/{Purchase,PurchaseLine,PerceptionType,PurchasePerception}.php | .ai/rules/services-models.md |
-| app/Filament/**/Tables/**,app/Filament/**/RelationManagers/** | .ai/rules/tables.md |
+| app/Filament/**/Tables/**, app/Filament/**/RelationManagers/** | .ai/rules/tables.md |

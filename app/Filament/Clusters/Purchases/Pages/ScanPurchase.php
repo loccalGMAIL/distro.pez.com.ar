@@ -16,6 +16,7 @@ use App\Services\PerceptionLinkMemory;
 use App\Services\ProductLinkMemory;
 use App\Services\SupplierMatcher;
 use BackedEnum;
+use BezhanSalleh\FilamentShield\Traits\HasPageShield;
 use Closure;
 use Filament\Actions\Action;
 use Filament\Forms\Components\DatePicker;
@@ -50,6 +51,8 @@ use Throwable;
  */
 class ScanPurchase extends Page
 {
+    use HasPageShield;
+
     protected string $view = 'filament.clusters.purchases.pages.scan-purchase';
 
     protected static ?string $cluster = PurchasesCluster::class;

@@ -5,6 +5,7 @@ namespace App\Filament\Clusters\Settings\Pages;
 use App\Filament\Clusters\Settings\SettingsCluster;
 use App\Models\CompanySetting;
 use BackedEnum;
+use BezhanSalleh\FilamentShield\Traits\HasPageShield;
 use Filament\Actions\Action;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Select;
@@ -21,6 +22,8 @@ use Filament\Support\Icons\Heroicon;
  */
 class General extends Page
 {
+    use HasPageShield;
+
     protected string $view = 'filament.clusters.settings.pages.general';
 
     protected static ?string $cluster = SettingsCluster::class;

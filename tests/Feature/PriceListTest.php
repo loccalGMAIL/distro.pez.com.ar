@@ -2,6 +2,7 @@
 
 use App\Models\PriceList;
 use App\Models\Product;
+use App\Models\User;
 
 test('product price for a price list applies its percentage over costo_ultimo', function () {
     $product = Product::factory()->create(['costo_ultimo' => 1000]);
@@ -76,7 +77,9 @@ test('orderedForSharing only returns active price lists with sharing turned on',
     PriceList::factory()->create(['nombre' => 'Interna', 'compartible' => false, 'activo' => true]);
     PriceList::factory()->create(['nombre' => 'Descontinuada', 'compartible' => true, 'activo' => false]);
 
-    expect(PriceList::orderedForSharing()->pluck('id')->all())->toEqual([$compartible->id]);
+    $admin = User::factory()->admin()->create(['activo' => true]);
+
+    expect(PriceList::orderedForSharing($admin)->pluck('id')->all())->toEqual([$compartible->id]);
 });
 
 test('price lists are shareable by default', function () {

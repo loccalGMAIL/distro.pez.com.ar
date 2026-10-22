@@ -65,6 +65,17 @@ class SaleResource extends Resource
         ];
     }
 
+    public static function getEloquentQuery(): Builder
+    {
+        $query = parent::getEloquentQuery();
+
+        if (auth()->user()?->can('ViewAll:Sale')) {
+            return $query;
+        }
+
+        return $query->where('sales.user_id', auth()->id());
+    }
+
     public static function getRecordRouteBindingEloquentQuery(): Builder
     {
         return parent::getRecordRouteBindingEloquentQuery()

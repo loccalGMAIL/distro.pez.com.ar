@@ -1,5 +1,5 @@
 @php
-    $priceLists = \App\Models\PriceList::orderedForSharing();
+    $priceLists = \App\Models\PriceList::orderedForSharing(auth()->user());
 @endphp
 
 <x-filament::dropdown placement="bottom-start" class="ms-2 lg:hidden">

@@ -10,7 +10,7 @@ test('legacy roles do not inherit fichaje permissions from the wildcard grant', 
     $this->seed(ShieldSeeder::class);
     $this->seed(RolePermissionSeeder::class);
 
-    foreach (['vendedor', 'deposito', 'chofer'] as $roleName) {
+    foreach (['deposito', 'chofer'] as $roleName) {
         $permissions = Role::findByName($roleName, 'web')->permissions->pluck('name');
 
         expect($permissions->filter(fn (string $name): bool => str_contains($name, 'TimeEntry')
@@ -20,6 +20,19 @@ test('legacy roles do not inherit fichaje permissions from the wildcard grant', 
 
     expect(Role::findByName('administrativo', 'web')->permissions->pluck('name')->all())
         ->toBe(['View:FichajeWidget']);
+});
+
+test('the vendedor role has an explicit scoped permission list', function () {
+    $this->seed(ShieldSeeder::class);
+    $this->seed(RolePermissionSeeder::class);
+
+    $permissions = Role::findByName('vendedor', 'web')->permissions->pluck('name')->all();
+
+    expect($permissions)->toEqualCanonicalizing([
+        'ViewAny:Sale', 'View:Sale', 'Create:Sale', 'Update:Sale',
+        'ViewAny:Customer', 'View:Customer', 'Create:Customer', 'Update:Customer',
+        'View:SalesCluster', 'View:PartnersCluster', 'View:NuevaVentaWidget', 'View:CompartirListaWidget',
+    ]);
 });
 
 test('a vendedor without permission cannot access user management', function () {

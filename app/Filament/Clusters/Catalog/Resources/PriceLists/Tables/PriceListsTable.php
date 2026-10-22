@@ -34,6 +34,10 @@ class PriceListsTable
                 IconColumn::make('compartible')
                     ->label('Compartible')
                     ->boolean(),
+                IconColumn::make('compartible_vendedores')
+                    ->label('Compartible por vendedores')
+                    ->boolean()
+                    ->toggleable(),
                 ActivoColumn::make(),
                 TextColumn::make('created_at')
                     ->dateTime()

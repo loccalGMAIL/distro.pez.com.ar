@@ -8,6 +8,31 @@ y este proyecto sigue [Semantic Versioning](https://semver.org/lang/es/) (ver
 
 ## [Unreleased]
 
+## [0.13.0] - 2026-10-22
+
+### Added
+
+- El rol **vendedor** ahora es un rol acotado: crea ventas y ve solo **las
+  suyas** (comprobante, confirmar y anular incluidos), ve/crea/edita
+  **clientes** (sin borrar) y comparte listas de precios. La venta queda
+  siempre a nombre del vendedor: el campo "Usuario" no se puede cambiar.
+- Cada lista de precios tiene un nuevo switch **"Compartible por vendedores"**
+  (y una columna en el listado). Un vendedor solo puede compartir —botón y PDF—
+  las listas que lo tengan prendido.
+- Dos permisos nuevos en Configuración → Roles: **Ver todas las ventas** y
+  **Compartir todas las listas de precios**. Admin y Dueño los tienen; sin
+  ellos, el usuario queda limitado a lo propio / a lo habilitado.
+
+### Changed
+
+- Las páginas **Escanear factura** (Compras) y **General** (Configuración)
+  ahora respetan los permisos del rol (`View:ScanPurchase` y `View:General`).
+  Antes cualquier usuario podía entrar. El rol `administrativo`, que solo tiene
+  el widget de fichaje, deja de verlas salvo que se le asignen.
+- El rol `vendedor` deja de heredar todos los permisos: tras actualizar hay que
+  correr `php artisan migrate` y los seeders `ShieldSeeder` y
+  `RolePermissionSeeder`.
+
 ## [0.12.1] - 2026-10-07
 
 ### Changed

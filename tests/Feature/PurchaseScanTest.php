@@ -15,7 +15,7 @@ use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
 
 beforeEach(function () {
-    $this->actingAs(User::factory()->create(['activo' => true]));
+    $this->actingAs(User::factory()->admin()->create(['activo' => true]));
     config(['services.anthropic.key' => 'test-key', 'services.anthropic.model' => 'claude-haiku-4-5']);
     Storage::fake('local');
     Warehouse::factory()->create(['predeterminado' => true]);
