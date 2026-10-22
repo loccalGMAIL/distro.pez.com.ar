@@ -43,6 +43,10 @@ class CreateSale extends CreateRecord
             throw new Halt;
         }
 
+        if (! auth()->user()?->can('ViewAll:Sale')) {
+            $data['user_id'] = auth()->id();
+        }
+
         return $data;
     }
 

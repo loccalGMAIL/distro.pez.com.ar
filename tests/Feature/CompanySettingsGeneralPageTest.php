@@ -7,7 +7,7 @@ use Illuminate\Http\UploadedFile;
 use Livewire\Livewire;
 
 beforeEach(function () {
-    $this->actingAs(User::factory()->create(['activo' => true]));
+    $this->actingAs(User::factory()->admin()->create(['activo' => true]));
 });
 
 test('the general settings page can be rendered', function () {

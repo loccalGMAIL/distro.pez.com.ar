@@ -6,7 +6,7 @@ use App\Models\User;
 use Livewire\Livewire;
 
 test('the widget links to share every active price list', function () {
-    $this->actingAs(User::factory()->create(['activo' => true]));
+    $this->actingAs(User::factory()->admin()->create(['activo' => true]));
 
     $minorista = PriceList::factory()->create(['nombre' => 'Minorista', 'activo' => true]);
     $inactiva = PriceList::factory()->create(['nombre' => 'Descontinuada', 'activo' => false]);
@@ -17,7 +17,7 @@ test('the widget links to share every active price list', function () {
 });
 
 test('the widget does not link price lists with sharing turned off', function () {
-    $this->actingAs(User::factory()->create(['activo' => true]));
+    $this->actingAs(User::factory()->admin()->create(['activo' => true]));
 
     $compartible = PriceList::factory()->create(['nombre' => 'Minorista', 'compartible' => true]);
     $interna = PriceList::factory()->create(['nombre' => 'Interna', 'compartible' => false]);

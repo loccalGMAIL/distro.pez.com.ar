@@ -120,6 +120,7 @@ class SalesTable
                     ->icon(Heroicon::Check)
                     ->color('success')
                     ->visible(fn (Sale $record): bool => $record->status === 'borrador')
+                    ->authorize('update')
                     ->requiresConfirmation()
                     ->modalDescription('Confirma la venta y descuenta el stock de cada línea.')
                     ->action(function (Sale $record) {
@@ -132,6 +133,7 @@ class SalesTable
                     ->icon(Heroicon::XCircle)
                     ->color('danger')
                     ->visible(fn (Sale $record): bool => $record->status !== 'anulada')
+                    ->authorize('update')
                     ->requiresConfirmation()
                     ->modalDescription('Anula la venta, devuelve el stock descontado y revierte cualquier cobro imputado. No se puede deshacer.')
                     ->action(fn (Sale $record) => $record->anular()),

@@ -19,7 +19,7 @@ class SalePolicy
 
     public function view(AuthUser $authUser, Sale $sale): bool
     {
-        return $authUser->can('View:Sale');
+        return $authUser->can('View:Sale') && $this->ownsOrViewsAll($authUser, $sale);
     }
 
     public function create(AuthUser $authUser): bool
@@ -29,12 +29,12 @@ class SalePolicy
 
     public function update(AuthUser $authUser, Sale $sale): bool
     {
-        return $authUser->can('Update:Sale');
+        return $authUser->can('Update:Sale') && $this->ownsOrViewsAll($authUser, $sale);
     }
 
     public function delete(AuthUser $authUser, Sale $sale): bool
     {
-        return $authUser->can('Delete:Sale');
+        return $authUser->can('Delete:Sale') && $this->ownsOrViewsAll($authUser, $sale);
     }
 
     public function deleteAny(AuthUser $authUser): bool
@@ -70,5 +70,13 @@ class SalePolicy
     public function reorder(AuthUser $authUser): bool
     {
         return $authUser->can('Reorder:Sale');
+    }
+
+    /**
+     * Sin ViewAll:Sale, un usuario solo opera sobre las ventas propias.
+     */
+    private function ownsOrViewsAll(AuthUser $authUser, Sale $sale): bool
+    {
+        return $authUser->can('ViewAll:Sale') || $sale->user_id === $authUser->getAuthIdentifier();
     }
 }

@@ -25,6 +25,7 @@ class PriceList extends Model
         'porcentaje',
         'predeterminada',
         'compartible',
+        'compartible_vendedores',
         'activo',
     ];
 
@@ -34,6 +35,7 @@ class PriceList extends Model
             'porcentaje' => 'decimal:2',
             'predeterminada' => 'boolean',
             'compartible' => 'boolean',
+            'compartible_vendedores' => 'boolean',
             'activo' => 'boolean',
         ];
     }
@@ -127,16 +129,31 @@ class PriceList extends Model
 
     /**
      * Listas que se pueden compartir con clientes: activas y con el switch
-     * `compartible` prendido. Usado por el botón de compartir lista de precios
-     * (topbar, widget y tabla de Productos).
+     * `compartible` prendido. Quien no tiene el permiso ShareAll:PriceList
+     * (ej. vendedores) solo ve además las marcadas `compartible_vendedores`.
+     * Usado por el botón de compartir lista de precios (topbar, widget y
+     * tabla de Productos).
      *
      * @return Collection<int, static>
      */
-    public static function orderedForSharing(): Collection
+    public static function orderedForSharing(?User $user = null): Collection
     {
         return static::orderedForDisplay()
-            ->filter(fn (self $priceList): bool => $priceList->compartible)
+            ->filter(fn (self $priceList): bool => $priceList->isSharableBy($user))
             ->values();
+    }
+
+    /**
+     * True si $user puede compartir esta lista: debe ser `compartible` y,
+     * salvo que tenga ShareAll:PriceList, también `compartible_vendedores`.
+     */
+    public function isSharableBy(?User $user): bool
+    {
+        if (! $this->compartible) {
+            return false;
+        }
+
+        return $this->compartible_vendedores || (bool) $user?->can('ShareAll:PriceList');
     }
 
     private static function displaySortOrder(string $nombre): int

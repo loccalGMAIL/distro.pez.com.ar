@@ -30,11 +30,19 @@ test('Dueño sees the newly gated dashboard widgets by default', function () {
 });
 
 test('a legacy role keeps seeing the newly gated widgets via the wildcard grant', function () {
+    $deposito = User::factory()->withRole('deposito')->create(['activo' => true]);
+
+    $this->actingAs($deposito);
+
+    expect(ProductosWidget::canView())->toBeTrue();
+});
+
+test('vendedor does not see the catalog widgets, only the ones granted explicitly', function () {
     $vendedor = User::factory()->vendedor()->create(['activo' => true]);
 
     $this->actingAs($vendedor);
 
-    expect(ProductosWidget::canView())->toBeTrue();
+    expect(ProductosWidget::canView())->toBeFalse();
 });
 
 test('administrativo only sees the fichaje widget, not the newly gated ones', function () {

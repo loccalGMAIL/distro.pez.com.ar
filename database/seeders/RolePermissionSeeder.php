@@ -18,7 +18,7 @@ class RolePermissionSeeder extends Seeder
      *
      * @var array<int, string>
      */
-    private array $legacyRoles = ['vendedor', 'deposito', 'chofer'];
+    private array $legacyRoles = ['deposito', 'chofer'];
 
     /**
      * @var array<int, string>

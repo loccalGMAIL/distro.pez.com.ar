@@ -253,7 +253,10 @@ return [
     |
     */
 
-    'custom_permissions' => [],
+    'custom_permissions' => [
+        'ViewAll:Sale' => 'Ver todas las ventas',
+        'ShareAll:PriceList' => 'Compartir todas las listas de precios',
+    ],
 
     /*
     |--------------------------------------------------------------------------
