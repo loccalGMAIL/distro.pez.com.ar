@@ -111,8 +111,13 @@ test('the stock column links to the stock movements filtered by the product', fu
         'filters' => ['product_id' => ['value' => $product->id]],
     ]);
 
-    Livewire::test(ListProducts::class)
-        ->assertTableColumnHasUrl('stock_total', $url, $product);
+    $component = Livewire::test(ListProducts::class)
+        ->assertTableColumnExists('stock_total');
+
+    $column = $component->instance()->getTable()->getColumn('stock_total');
+    $column->record($component->instance()->getTableRecord((string) $product->getKey()));
+
+    expect($column->getUrl())->toBe($url);
 });
 
 test('the stock movements list can be filtered by product', function () {
